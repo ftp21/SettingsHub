@@ -10,7 +10,7 @@ import time
 from enigma import eTimer
 
 from Plugins.Extensions.SettingsHub import api
-from Plugins.Extensions.SettingsHub.config import config, getActiveProvider, persist, AUTOCHECK_INTERVAL_SECONDS
+from Plugins.Extensions.SettingsHub.config import config, getActiveProvider, persist, setInstalledInfo, AUTOCHECK_INTERVAL_SECONDS
 from Plugins.Extensions.SettingsHub.language import _
 
 
@@ -66,7 +66,10 @@ class AutoCheckService:
 			if resultCallback:
 				resultCallback(updates)
 			elif updates and self.session:
-				self._notify(updates)
+				if config.plugins.settingshub.autocheck_notify_only.value:
+					self._notify(updates)
+				else:
+					self._autoInstall(updates[0])
 
 		api.runInThread(work, done)
 		return True
@@ -80,6 +83,39 @@ class AutoCheckService:
 			MessageBox.TYPE_INFO,
 			timeout=10,
 		)
+
+	def _autoInstall(self, update):
+		# 'Solo notifica' e' su No: invece di limitarsi ad avvisare, scarica
+		# ed applica subito il nuovo setting per il provider attivo, con lo
+		# stesso percorso condiviso (reload DB, ripristino bouquet preferiti)
+		# usato per un'installazione manuale da screens/browser.py.
+		provider, entry = update
+
+		def progress(percent, message=""):
+			pass
+
+		def installDone(success, message=""):
+			if success:
+				setInstalledInfo(provider.id, entry)
+			self._notifyInstallResult(provider, entry, success, message)
+
+		try:
+			provider.install(entry, progress, installDone)
+		except Exception as e:
+			print(f"[SettingsHub] Installazione automatica fallita per '{provider.id}': {e}")
+			self._notifyInstallResult(provider, entry, False, str(e))
+
+	def _notifyInstallResult(self, provider, entry, success, message):
+		from Screens.MessageBox import MessageBox
+		if not self.session:
+			return
+		if success:
+			text = _("Nuovo setting installato automaticamente per %s:\n%s") % (provider.name, message or entry.name)
+			msgType = MessageBox.TYPE_INFO
+		else:
+			text = _("Installazione automatica fallita per %s:\n%s") % (provider.name, message or entry.name)
+			msgType = MessageBox.TYPE_ERROR
+		self.session.open(MessageBox, text, msgType, timeout=10)
 
 	def runCheck(self):
 		self.checkNow()
