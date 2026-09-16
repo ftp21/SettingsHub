@@ -34,7 +34,7 @@ config.plugins.settingshub.configured = ConfigYesNo(default=False)
 config.plugins.settingshub.active_provider_id = ConfigText(default="")  # un solo setting man alla volta
 config.plugins.settingshub.autocheck_interval = ConfigSelection(default="daily", choices=AUTOCHECK_INTERVALS)
 config.plugins.settingshub.autocheck_time = ConfigClock(default=_DEFAULT_AUTOCHECK_TIME)
-config.plugins.settingshub.autocheck_notify_only = ConfigYesNo(default=True)  # solo notifica, non installa da solo
+config.plugins.settingshub.autocheck_notify_only = ConfigYesNo(default=False)  # solo notifica, non installa da solo
 config.plugins.settingshub.last_check = ConfigText(default="")  # ISO datetime dell'ultimo check, sola lettura
 config.plugins.settingshub.favorites_snapshot = ConfigText(default="")  # JSON, gestito da favorites.py
 # Quali bouquet preservare (vedi screens/choose_favorites.py): di default
