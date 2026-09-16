@@ -46,15 +46,10 @@ def resetChannelData():
 
 
 def resetProviderInstalledInfo(provider_id):
-	"""Dimentica quale entry risultava installata per questo provider (vedi
-	config.getInstalledInfo): il prossimo controllo/installazione non la
-	trattera' piu' come 'gia' aggiornata'."""
-	from Plugins.Extensions.SettingsHub.config import getProviderConfig, persist
-	cfg = getProviderConfig(provider_id)
-	cfg.installed_entry_id.value = ""
-	cfg.installed_date.value = ""
-	cfg.installed_name.value = ""
-	cfg.installed_entry_id.save()
-	cfg.installed_date.save()
-	cfg.installed_name.save()
-	persist()
+	"""Dimentica lo stato 'installato' corrente (vedi config.getInstalledInfo:
+	e' un unico stato globale, non uno per provider). 'provider_id' non serve
+	piu' per distinguere quale ramo di config azzerare, resta come parametro
+	solo per compatibilita' con chi la chiama gia' passando il provider
+	attivo (vedi screens/setup.py)."""
+	from Plugins.Extensions.SettingsHub.config import resetInstalledInfo
+	resetInstalledInfo()

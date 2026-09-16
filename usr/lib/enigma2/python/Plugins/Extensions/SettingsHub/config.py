@@ -46,6 +46,45 @@ config.plugins.settingshub.favorites_snapshot = ConfigText(default="")  # JSON, 
 # preservare "tutto" di default e' sia sorprendente sia pesante.
 config.plugins.settingshub.favorites_selection = ConfigText(default="")  # JSON: lista di nomi file bouquet
 
+# Stato "installato" UNICO per tutto l'hub, non uno per provider: sul
+# decoder esiste un solo lamedb/bouquets alla volta, quindi non ha senso
+# ricordare per sempre cosa era installato per un provider usato una volta
+# mesi fa (e poi mai piu' selezionato) - risultato che si otterrebbe con una
+# ConfigSubsection per ogni provider mai scelto, che Enigma2 oltretutto non
+# butta mai via da /etc/enigma2/settings anche quando smette di essere
+# referenziata in codice. installed_provider_id dice A CHI appartiene questo
+# stato: se non corrisponde al provider attivo, per quel provider non e'
+# installato nulla (vedi getInstalledInfo).
+config.plugins.settingshub.installed_provider_id = ConfigText(default="")
+config.plugins.settingshub.installed_entry_id = ConfigText(default="")
+config.plugins.settingshub.installed_date = ConfigText(default="")
+config.plugins.settingshub.installed_name = ConfigText(default="")
+
+
+def _purgeLegacyConfig():
+	"""Enigma2 non elimina mai da /etc/enigma2/settings una chiave che smette
+	di essere referenziata in codice (la tiene per non perdere impostazioni
+	di plugin temporaneamente disinstallati) - quindi ogni volta che questo
+	plugin ha smesso di usare un ramo di config, quel ramo resta orfano per
+	sempre a meno di ripulirlo esplicitamente. Rami noti diventati orfani in
+	versioni precedenti:
+	  - 'providers.<id>.installed_*': una ConfigSubsection per OGNI provider
+	    mai scelto (anche una volta soltanto, mesi fa), sostituita da un
+	    unico stato 'installato' globale (vedi sopra).
+	  - 'favorites_selection_set': flag on/off eliminato quando la selezione
+	    bouquet e' diventata 'vuoto = nessuno' invece di richiedere un
+	    interruttore separato.
+	Va chiamata una volta al modulo import; e' un no-op silenzioso se non
+	c'e' nulla da ripulire."""
+	stored = config.plugins.settingshub.content.stored_values
+	changed = False
+	for legacyKey in ("providers", "favorites_selection_set"):
+		if legacyKey in stored:
+			del stored[legacyKey]
+			changed = True
+	if changed:
+		persist()
+
 
 def getFavoritesSelection():
 	"""Il set dei nomi file bouquet scelti dall'utente (vedi
@@ -58,40 +97,6 @@ def getFavoritesSelection():
 		return set(json.loads(raw))
 	except ValueError:
 		return set()
-
-# Config per-provider create la prima volta che servono. Non note in anticipo
-# (i provider si registrano a runtime), quindi niente ConfigSubsection statica:
-# usiamo un dict Python che fa da cache dei sotto-nodi gia' creati.
-_providerConfigs = {}
-
-
-def getProviderConfig(provider_id):
-	"""Ritorna (creandola se serve) la ConfigSubsection per un provider:
-	  .installed_entry_id ConfigText, id dell'ultima entry installata
-	  .installed_date     ConfigText
-	  .installed_name     ConfigText
-	Persistita comunque dentro config.plugins.settingshub.providers.<id>.
-	"""
-	if provider_id in _providerConfigs:
-		return _providerConfigs[provider_id]
-
-	if not hasattr(config.plugins.settingshub, "providers"):
-		config.plugins.settingshub.providers = ConfigSubsection()
-	providersRoot = config.plugins.settingshub.providers
-
-	# ConfigSubsection non accetta id provider arbitrari come attributo se
-	# contengono caratteri non validi in python: normalizziamo la chiave.
-	safe_id = "".join(c if c.isalnum() else "_" for c in provider_id)
-	if not hasattr(providersRoot, safe_id):
-		sub = ConfigSubsection()
-		sub.installed_entry_id = ConfigText(default="")
-		sub.installed_date = ConfigText(default="")
-		sub.installed_name = ConfigText(default="")
-		setattr(providersRoot, safe_id, sub)
-
-	sub = getattr(providersRoot, safe_id)
-	_providerConfigs[provider_id] = sub
-	return sub
 
 
 def getActiveProvider():
@@ -114,13 +119,17 @@ def setActiveProvider(provider_id):
 
 
 def getInstalledInfo(provider_id):
-	cfg = getProviderConfig(provider_id)
-	if not cfg.installed_entry_id.value:
+	"""None se il provider passato non e' quello che ha scritto l'ultimo
+	lamedb/bouquets (vedi il commento su installed_provider_id sopra): non
+	c'e' uno storico per provider, solo lo stato attuale reale del decoder."""
+	if config.plugins.settingshub.installed_provider_id.value != provider_id:
+		return None
+	if not config.plugins.settingshub.installed_entry_id.value:
 		return None
 	return {
-		"entry_id": cfg.installed_entry_id.value,
-		"date": cfg.installed_date.value,
-		"name": cfg.installed_name.value,
+		"entry_id": config.plugins.settingshub.installed_entry_id.value,
+		"date": config.plugins.settingshub.installed_date.value,
+		"name": config.plugins.settingshub.installed_name.value,
 	}
 
 
@@ -133,11 +142,30 @@ def persist():
 
 
 def setInstalledInfo(provider_id, entry):
-	cfg = getProviderConfig(provider_id)
-	cfg.installed_entry_id.value = entry.id
-	cfg.installed_date.value = entry.date or ""
-	cfg.installed_name.value = entry.name
-	cfg.installed_entry_id.save()
-	cfg.installed_date.save()
-	cfg.installed_name.save()
+	config.plugins.settingshub.installed_provider_id.value = provider_id
+	config.plugins.settingshub.installed_entry_id.value = entry.id
+	config.plugins.settingshub.installed_date.value = entry.date or ""
+	config.plugins.settingshub.installed_name.value = entry.name
+	config.plugins.settingshub.installed_provider_id.save()
+	config.plugins.settingshub.installed_entry_id.save()
+	config.plugins.settingshub.installed_date.save()
+	config.plugins.settingshub.installed_name.save()
 	persist()
+
+
+def resetInstalledInfo():
+	"""Dimentica lo stato 'installato' corrente (usata da reset.py quando
+	l'utente azzera i setting): il prossimo controllo/installazione non lo
+	trattera' piu' come 'gia' aggiornato'."""
+	config.plugins.settingshub.installed_provider_id.value = ""
+	config.plugins.settingshub.installed_entry_id.value = ""
+	config.plugins.settingshub.installed_date.value = ""
+	config.plugins.settingshub.installed_name.value = ""
+	config.plugins.settingshub.installed_provider_id.save()
+	config.plugins.settingshub.installed_entry_id.save()
+	config.plugins.settingshub.installed_date.save()
+	config.plugins.settingshub.installed_name.save()
+	persist()
+
+
+_purgeLegacyConfig()
