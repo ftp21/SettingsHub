@@ -5,8 +5,6 @@ Priority: optional
 Architecture: all
 Maintainer: ftp21 <https://github.com/ftp21>
 Source: https://github.com/ftp21/SettingsHub
-Description: Base modulare per setting man multipli
- Framework Enigma2 che permette di installare e aggiornare canali/bouquet
- da diversi "setting man" (provider di setting satellitari) tramite
- un'unica interfaccia in stile EPGImport. Un solo provider attivo alla
- volta, configurazione salvata in config.plugins.settingshub.*.
+Description: Gestore multi setting-man per liste canali
+ Installa e aggiorna canali/bouquet da diversi setting man, un provider
+ attivo alla volta.
