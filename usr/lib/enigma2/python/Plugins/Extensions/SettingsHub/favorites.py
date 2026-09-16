@@ -220,10 +220,20 @@ def restore(configField):
 		else:
 			baseName = _sanitizeName(bouquet.get("title"))
 		fileName = "userbouquet.%s%s" % (baseName, info["ext"])
-		suffix = 2
-		while fileName in usedNames:
-			fileName = "userbouquet.%s_%d%s" % (baseName, suffix, info["ext"])
-			suffix += 1
+		# Il nome originale (se non generico) puo' scontrarsi con un file
+		# creato dal pacchetto APPENA installato (es. un provider che rigenera
+		# sempre lo stesso 'userbouquet.dbe00.tv'): senza controllare anche il
+		# disco, non solo in usedNames, il ripristino sovrascriverebbe in
+		# silenzio il bouquet nuovo invece di restare un preferito distinto.
+		# In caso di scontro si antepone un prefisso al nome (non un suffisso
+		# numerico) cosi' resta chiaro a colpo d'occhio che e' il preferito
+		# preservato, non una seconda copia qualsiasi dello stesso bouquet.
+		if fileName in usedNames or os.path.exists(os.path.join(ENIGMA2_DIR, fileName)):
+			fileName = "userbouquet.preferiti_%s%s" % (baseName, info["ext"])
+			suffix = 2
+			while fileName in usedNames or os.path.exists(os.path.join(ENIGMA2_DIR, fileName)):
+				fileName = "userbouquet.preferiti_%s_%d%s" % (baseName, suffix, info["ext"])
+				suffix += 1
 		usedNames.add(fileName)
 
 		path = os.path.join(ENIGMA2_DIR, fileName)
