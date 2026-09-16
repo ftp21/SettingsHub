@@ -1,0 +1,29 @@
+name: Build and release ipk
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build ipk
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          ./build-ipk.sh "$VERSION"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/*.ipk \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes
