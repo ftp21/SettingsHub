@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Scelta di QUALI bouquet preservare attraverso un cambio di setting (non
-necessariamente 'digitale terrestre': puo' essere qualsiasi bouquet). Lista
-multiselezione vera (Components.SelectionList, lo stesso widget usato per le
-selezioni multiple in giro per Enigma2): OK alterna la spunta, niente
-scorciatoie numeriche ne' altro."""
+Scelta di quali bouquet preservare attraverso un cambio di setting.
+Multiselezione vera (Components.SelectionList): OK alterna la spunta."""
 import json
 
 from Components.ActionMap import ActionMap
@@ -30,8 +27,8 @@ class ChooseFavorites(Screen):
 
 	def __init__(self, session):
 		Screen.__init__(self, session)
-		self.setTitle(_("Scegli i bouquet da preservare"))
-		self["title"] = Label(_("Scegli i bouquet da preservare nei prossimi setting - OK per selezionare/deselezionare"))
+		self.setTitle(_("Choose bouquets to preserve"))
+		self["title"] = Label(_("Choose the bouquets to preserve across setting updates - OK to toggle"))
 
 		self.bouquets = favorites.listUserBouquets()  # [(fileName, title), ...]
 		selected = self._loadSelection()
@@ -40,9 +37,9 @@ class ChooseFavorites(Screen):
 		for index, (fileName, title) in enumerate(self.bouquets):
 			self["list"].addSelection(title, fileName, index, fileName in selected)
 
-		self["key_red"] = Label(_("Annulla"))
-		self["key_green"] = Label(_("Salva"))
-		self["key_yellow"] = Label(_("Tutti/Nessuno"))
+		self["key_red"] = Label(_("Cancel"))
+		self["key_green"] = Label(_("Save"))
+		self["key_yellow"] = Label(_("All/None"))
 
 		self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "NavigationActions"], {
 			"cancel": self.close,
@@ -60,11 +57,9 @@ class ChooseFavorites(Screen):
 		}, -1)
 
 	def toggleAllSelection(self):
-		"""SelectionList.toggleAllSelection() di sistema fa un NOT su ogni
-		voce (chi era selezionato si deseleziona e viceversa): qui invece
-		vogliamo un vero 'seleziona tutti' / 'deseleziona tutti' - se anche
-		una sola voce non e' selezionata, il tasto le seleziona tutte;
-		altrimenti le deseleziona tutte."""
+		"""Un vero 'seleziona tutti'/'deseleziona tutti' invece del NOT per
+		voce di SelectionList.toggleAllSelection(): se anche una sola voce
+		non e' selezionata, il tasto le seleziona tutte."""
 		lst = self["list"]
 		allSelected = all(item[0][3] for item in lst.list)
 		newState = not allSelected
@@ -93,6 +88,6 @@ class ChooseFavorites(Screen):
 
 def openChooseFavorites(session):
 	if not favorites.listUserBouquets():
-		session.open(MessageBox, _("Nessun bouquet personale trovato."), MessageBox.TYPE_INFO, timeout=5)
+		session.open(MessageBox, _("No user bouquets found."), MessageBox.TYPE_INFO, timeout=5)
 		return
 	session.open(ChooseFavorites)

@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-Tutta la config di SettingsHub vive SOLO dentro config.plugins.settingshub,
-quindi in /etc/enigma2/settings come ogni altra config di sistema. Nessun
-file proprio sparso nella cartella del plugin (a differenza del vecchio
-NGsetting, che scriveva un suo 'Date' fatto a mano).
-"""
+"""Tutta la config vive dentro config.plugins.settingshub, in
+/etc/enigma2/settings come ogni altra config di sistema."""
 import json
 import time
 
@@ -18,10 +14,10 @@ from Plugins.Extensions.SettingsHub.language import _
 _DEFAULT_AUTOCHECK_TIME = time.mktime((2024, 1, 1, 6, 0, 0, 0, 0, -1))
 
 AUTOCHECK_INTERVALS = [
-	("off", _("Mai")),
-	("6h", _("Ogni 6 ore")),
-	("12h", _("Ogni 12 ore")),
-	("daily", _("Una volta al giorno")),
+	("off", _("Never")),
+	("6h", _("Every 6 hours")),
+	("12h", _("Every 12 hours")),
+	("daily", _("Once a day")),
 ]
 
 AUTOCHECK_INTERVAL_SECONDS = {
@@ -47,14 +43,8 @@ config.plugins.settingshub.favorites_snapshot = ConfigText(default="")  # JSON, 
 config.plugins.settingshub.favorites_selection = ConfigText(default="")  # JSON: lista di nomi file bouquet
 
 # Stato "installato" UNICO per tutto l'hub, non uno per provider: sul
-# decoder esiste un solo lamedb/bouquets alla volta, quindi non ha senso
-# ricordare per sempre cosa era installato per un provider usato una volta
-# mesi fa (e poi mai piu' selezionato) - risultato che si otterrebbe con una
-# ConfigSubsection per ogni provider mai scelto, che Enigma2 oltretutto non
-# butta mai via da /etc/enigma2/settings anche quando smette di essere
-# referenziata in codice. installed_provider_id dice A CHI appartiene questo
-# stato: se non corrisponde al provider attivo, per quel provider non e'
-# installato nulla (vedi getInstalledInfo).
+# decoder esiste un solo lamedb/bouquets alla volta. installed_provider_id
+# dice a chi appartiene questo stato (vedi getInstalledInfo).
 config.plugins.settingshub.installed_provider_id = ConfigText(default="")
 config.plugins.settingshub.installed_entry_id = ConfigText(default="")
 config.plugins.settingshub.installed_date = ConfigText(default="")
@@ -62,20 +52,9 @@ config.plugins.settingshub.installed_name = ConfigText(default="")
 
 
 def _purgeLegacyConfig():
-	"""Enigma2 non elimina mai da /etc/enigma2/settings una chiave che smette
-	di essere referenziata in codice (la tiene per non perdere impostazioni
-	di plugin temporaneamente disinstallati) - quindi ogni volta che questo
-	plugin ha smesso di usare un ramo di config, quel ramo resta orfano per
-	sempre a meno di ripulirlo esplicitamente. Rami noti diventati orfani in
-	versioni precedenti:
-	  - 'providers.<id>.installed_*': una ConfigSubsection per OGNI provider
-	    mai scelto (anche una volta soltanto, mesi fa), sostituita da un
-	    unico stato 'installato' globale (vedi sopra).
-	  - 'favorites_selection_set': flag on/off eliminato quando la selezione
-	    bouquet e' diventata 'vuoto = nessuno' invece di richiedere un
-	    interruttore separato.
-	Va chiamata una volta al modulo import; e' un no-op silenzioso se non
-	c'e' nulla da ripulire."""
+	"""Enigma2 non butta mai via una chiave orfana da /etc/enigma2/settings:
+	ripulisce i rami di config abbandonati da versioni precedenti (il vecchio
+	'providers.<id>.installed_*' per provider e 'favorites_selection_set')."""
 	stored = config.plugins.settingshub.content.stored_values
 	changed = False
 	for legacyKey in ("providers", "favorites_selection_set"):

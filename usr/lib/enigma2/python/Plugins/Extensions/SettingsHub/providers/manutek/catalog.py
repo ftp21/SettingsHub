@@ -1,18 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Fetch e parsing di http://www.manutek.it/isetting/index.php?dir= (pagina di
-tipo AutoIndex con l'elenco degli zip "NemoxyzRLS_Manutek_<Tipo>_E2[_Dtt_
-<Zona>] <gg> <mm> <aaaa>.zip"). Nessuna dipendenza da 'enigma'/api qui dentro
-apposta: e' testabile anche fuori da Enigma2 con un python3 qualsiasi.
+Fetch e parsing di http://www.manutek.it/isetting/index.php?dir= (AutoIndex
+con zip "NemoxyzRLS_Manutek_<Tipo>_E2[_Dtt_<Zona>] <gg> <mm> <aaaa>.zip").
 
-Le categorie qui NON sono i tipi (Mono/Dual/Trial/noSAT) ma le zone
-DTT/citta': ogni zona raccoglie i pacchetti Mono/Dual/Trial/Solo-DTT
-disponibili per quella zona (richiesta esplicita: "per ogni citta' ci sta
-Mono, Dual, NoSat"). I pacchetti senza zona (solo satellite, nessun DTT
-locale) finiscono nella categoria speciale "Nazionale (solo SAT)".
-
-Le funzioni di rete (fetchCatalog) vanno chiamate SOLO da un thread di
-background (vedi provider.py, che usa api.runInThread)."""
+Le categorie sono le zone DTT/citta' (non i tipi Mono/Dual/Trial/noSAT):
+ogni zona raccoglie tutti i tipi disponibili per quella zona; i pacchetti
+senza zona finiscono in "Nazionale (solo SAT)". fetchCatalog va chiamata
+solo da un thread di background (vedi provider.py)."""
 import html
 import re
 import urllib.parse

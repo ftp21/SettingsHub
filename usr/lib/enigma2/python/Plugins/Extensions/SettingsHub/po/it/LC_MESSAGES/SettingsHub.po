@@ -1,0 +1,163 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: SettingsHub\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: it\n"
+
+msgid "'%s' is already installed with this date (%s).\nDownload it again anyway?"
+msgstr "'%s' è già installato con questa data (%s).\nRiscaricarlo comunque?"
+
+msgid "All/None"
+msgstr "Tutti/Nessuno"
+
+msgid "Automatic install failed for %s:\n%s"
+msgstr "Installazione automatica fallita per %s:\n%s"
+
+msgid "Bouquets to preserve (OK to choose)"
+msgstr "Bouquet da preservare (OK per scegliere)"
+
+msgid "Cancel"
+msgstr "Annulla"
+
+msgid "Categories"
+msgstr "Categorie"
+
+msgid "Check for new settings"
+msgstr "Controlla nuovi setting"
+
+msgid "Check time"
+msgstr "Orario del controllo"
+
+msgid "Choose bouquets to preserve"
+msgstr "Scegli i bouquet da preservare"
+
+msgid "Choose the bouquets to preserve across setting updates - OK to toggle"
+msgstr "Scegli i bouquet da preservare nei prossimi setting - OK per selezionare/deselezionare"
+
+msgid "Could not start the install:\n%s"
+msgstr "Errore nell'avviare l'installazione:\n%s"
+
+msgid "Delete ALL current channels and bouquets and forget the setting installed for '%s'?\nThis cannot be undone: use it to start fresh and re-download everything."
+msgstr "Cancellare TUTTI i canali e bouquet attuali e dimenticare il setting installato per '%s'?\nNon si torna indietro: usalo per ripartire da una base pulita e riscaricare tutto da capo."
+
+msgid "Done: channels reset and setting forgotten. You can now reinstall from scratch."
+msgstr "Fatto: canali azzerati e setting dimenticato. Ora puoi reinstallare da capo."
+
+msgid "Error: %s"
+msgstr "Errore: %s"
+
+msgid "Every 12 hours"
+msgstr "Ogni 12 ore"
+
+msgid "Every 6 hours"
+msgstr "Ogni 6 ore"
+
+msgid "Exit"
+msgstr "Esci"
+
+msgid "Favorite bouquets restored: %(restored)d/%(saved)d."
+msgstr "Bouquet preferiti ripristinati: %(restored)d/%(saved)d."
+
+msgid "Install"
+msgstr "Installa"
+
+msgid "Install '%s'?\n%s"
+msgstr "Installare '%s'?\n%s"
+
+msgid "Install complete:\n%s"
+msgstr "Installazione completata:\n%s"
+
+msgid "Install failed:\n%s"
+msgstr "Installazione fallita:\n%s"
+
+msgid "Installed: %s (%s)"
+msgstr "Installato: %s (%s)"
+
+msgid "Installing '%s'..."
+msgstr "Installazione di '%s' in corso..."
+
+msgid "Loading categories..."
+msgstr "Caricamento categorie..."
+
+msgid "MENU to reset the installed settings."
+msgstr "MENU per azzerare i setting installati (ripristina base)."
+
+msgid "Multi setting-man channel list manager"
+msgstr "Gestore multi setting-man per liste canali"
+
+msgid "Never"
+msgstr "Mai"
+
+msgid "New setting applied."
+msgstr "Nuovo setting applicato."
+
+msgid "New setting installed automatically for %s:\n%s"
+msgstr "Nuovo setting installato automaticamente per %s:\n%s"
+
+msgid "New settings available for: %s"
+msgstr "Nuovi setting disponibili per: %s"
+
+msgid "No setting man available: install a setting man plugin and try again."
+msgstr "Nessun setting man disponibile: installa un plugin setting man e riprova."
+
+msgid "No setting man installed"
+msgstr "Nessun setting man installato"
+
+msgid "No setting man installed."
+msgstr "Nessun setting man installato."
+
+msgid "No user bouquets found."
+msgstr "Nessun bouquet personale trovato."
+
+msgid "Nothing installed yet for this provider."
+msgstr "Nessun setting installato per questo provider."
+
+msgid "Notify only (don't install automatically)"
+msgstr "Solo notifica (non installare da solo)"
+
+msgid "Once a day"
+msgstr "Una volta al giorno"
+
+msgid "Packages"
+msgstr "Setting"
+
+msgid "Refresh"
+msgstr "Aggiorna"
+
+msgid "Reset installed settings"
+msgstr "Azzera i setting installati"
+
+msgid "Save"
+msgstr "Salva"
+
+msgid "Setting man to use"
+msgstr "Setting man da usare"
+
+msgid "SettingsHub actions"
+msgstr "Azioni SettingsHub"
+
+msgid "SettingsHub settings"
+msgstr "Impostazioni SettingsHub"
+
+msgid "SettingsHub setup wizard"
+msgstr "Configurazione guidata SettingsHub"
+
+msgid "Setup"
+msgstr "Impostazioni"
+
+msgid "The downloaded file is not a valid tar.gz archive."
+msgstr "Il file scaricato non è un archivio tar.gz valido."
+
+msgid "The downloaded file is not a valid zip archive."
+msgstr "Il file scaricato non è un archivio zip valido."
+
+msgid "The downloaded package does not contain a valid lamedb."
+msgstr "Il pacchetto scaricato non contiene un lamedb valido."
+
+msgid "Unrecognized archive format (expected zip or tar.gz)."
+msgstr "Formato di archivio non riconosciuto (atteso zip o tar.gz)."
+
+msgid "Welcome! Choose which setting man to use and when to check for updates, then save."
+msgstr "Benvenuto! Scegli il setting man da usare e quando controllare i nuovi setting, poi salva."

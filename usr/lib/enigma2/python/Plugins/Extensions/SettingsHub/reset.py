@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Riporta la lista canali a una situazione di base, cancellando tutto quello
-che un setting man ha installato (lamedb, bouquet, satellites.xml) e
-dimenticando quale entry risultava installata, cosi' il prossimo install
-riparte da zero invece di pensare 'e' gia' aggiornato'. Non tocca la
-configurazione dei preferiti (selezione/snapshot): sono preferenze
-dell'utente, non 'dati del setting man', e servono proprio a sopravvivere a
-un reset come questo."""
+Riporta la lista canali a una situazione di base (lamedb, bouquet) e
+dimentica quale entry risultava installata. Non tocca la config dei
+preferiti: serve proprio a sopravvivere a un reset come questo."""
 import os
 
 ENIGMA2_DIR = "/etc/enigma2"
@@ -46,10 +42,8 @@ def resetChannelData():
 
 
 def resetProviderInstalledInfo(provider_id):
-	"""Dimentica lo stato 'installato' corrente (vedi config.getInstalledInfo:
-	e' un unico stato globale, non uno per provider). 'provider_id' non serve
-	piu' per distinguere quale ramo di config azzerare, resta come parametro
-	solo per compatibilita' con chi la chiama gia' passando il provider
-	attivo (vedi screens/setup.py)."""
+	"""Dimentica lo stato 'installato' globale (vedi config.getInstalledInfo).
+	'provider_id' non serve piu' a distinguere il ramo di config, resta solo
+	per compatibilita' col chiamante (screens/setup.py)."""
 	from Plugins.Extensions.SettingsHub.config import resetInstalledInfo
 	resetInstalledInfo()

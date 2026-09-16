@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-Scheduler del controllo automatico nuovi setting. Sostituisce il timer a
-minuto-casuale del vecchio NGsetting con un intervallo/orario configurabile
-dall'utente (vedi config.py) e non blocca mai il thread GUI: ogni provider
-viene interrogato dentro api.runInThread.
-"""
+"""Scheduler del controllo automatico nuovi setting, intervallo/orario
+configurabile dall'utente (vedi config.py). Non blocca mai il thread GUI:
+ogni provider viene interrogato dentro api.runInThread."""
 import time
 
 from enigma import eTimer
@@ -79,16 +76,14 @@ class AutoCheckService:
 		names = ", ".join(f"{p.name} ({e.date or e.name})" for p, e in updates)
 		self.session.open(
 			MessageBox,
-			_("Nuovi setting disponibili per: %s") % names,
+			_("New settings available for: %s") % names,
 			MessageBox.TYPE_INFO,
 			timeout=10,
 		)
 
 	def _autoInstall(self, update):
-		# 'Solo notifica' e' su No: invece di limitarsi ad avvisare, scarica
-		# ed applica subito il nuovo setting per il provider attivo, con lo
-		# stesso percorso condiviso (reload DB, ripristino bouquet preferiti)
-		# usato per un'installazione manuale da screens/browser.py.
+		# 'Solo notifica' su No: scarica ed applica subito, stesso percorso
+		# usato per un'installazione manuale (browser.py).
 		provider, entry = update
 
 		def progress(percent, message=""):
@@ -110,10 +105,10 @@ class AutoCheckService:
 		if not self.session:
 			return
 		if success:
-			text = _("Nuovo setting installato automaticamente per %s:\n%s") % (provider.name, message or entry.name)
+			text = _("New setting installed automatically for %s:\n%s") % (provider.name, message or entry.name)
 			msgType = MessageBox.TYPE_INFO
 		else:
-			text = _("Installazione automatica fallita per %s:\n%s") % (provider.name, message or entry.name)
+			text = _("Automatic install failed for %s:\n%s") % (provider.name, message or entry.name)
 			msgType = MessageBox.TYPE_ERROR
 		self.session.open(MessageBox, text, msgType, timeout=10)
 

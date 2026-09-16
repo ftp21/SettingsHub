@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Schermata principale di un setting man, in stile EPGImport: due colonne
-persistenti, a sinistra le categorie, a destra i setting della categoria
-selezionata (niente piu' catena di ChoiceBox). Skin custom (qui non esiste un
-template di sistema per un browser a due colonne), ma generica: solo widget
-standard, nessun colore/font hardcoded fuori da quelli di default della
-skin attiva - una skin che vuole personalizzarla puo' sempre definire il suo
-'<screen name="SettingsBrowser">' e questa viene ignorata automaticamente."""
+Schermata principale di un setting man, stile EPGImport: due colonne fisse,
+categorie a sinistra ed entry della categoria selezionata a destra. Skin
+generica (nessun colore/font hardcoded oltre quelli di default), sovrascrivibile
+da una skin esterna che ridefinisca '<screen name="SettingsBrowser">'."""
 from enigma import eTimer
 
 from Components.ActionMap import ActionMap
@@ -46,16 +43,16 @@ class SettingsBrowser(Screen):
 		self.currentEntries = []
 		self._deferTimer = None
 
-		self["titleLeft"] = Label(_("Categorie"))
-		self["titleRight"] = Label(_("Setting"))
+		self["titleLeft"] = Label(_("Categories"))
+		self["titleRight"] = Label(_("Packages"))
 		self["categories"] = MenuList([])
 		self["entries"] = MenuList([])
-		self["info"] = Label(_("Caricamento categorie..."))
+		self["info"] = Label(_("Loading categories..."))
 		self["credits"] = Label(CREDITS)
-		self["key_red"] = Label(_("Esci"))
-		self["key_green"] = Label(_("Installa"))
-		self["key_yellow"] = Label(_("Aggiorna"))
-		self["key_blue"] = Label(_("Impostazioni"))
+		self["key_red"] = Label(_("Exit"))
+		self["key_green"] = Label(_("Install"))
+		self["key_yellow"] = Label(_("Refresh"))
+		self["key_blue"] = Label(_("Setup"))
 
 		self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "NavigationActions"], {
 			"cancel": self.close,
@@ -112,7 +109,7 @@ class SettingsBrowser(Screen):
 
 	# --- caricamento dati ---------------------------------------------
 	def refresh(self):
-		self["info"].setText(_("Caricamento categorie..."))
+		self["info"].setText(_("Loading categories..."))
 
 		def work():
 			return self.provider.getCategories()
@@ -121,7 +118,7 @@ class SettingsBrowser(Screen):
 
 	def _onCategoriesLoaded(self, categories, error):
 		if error:
-			self["info"].setText(_("Errore: %s") % error)
+			self["info"].setText(_("Error: %s") % error)
 			return
 		self.categories = categories or []
 		self["categories"].setList([c.name for c in self.categories])
@@ -136,13 +133,12 @@ class SettingsBrowser(Screen):
 			return
 		category = self.categories[index]
 		try:
-			# a questo punto il catalogo e' gia' in cache nel provider (lo ha
-			# appena scaricato getCategories()): niente rete qui, va bene
-			# chiamarla direttamente sul thread GUI.
+			# Il catalogo e' gia' in cache (scaricato da getCategories()): niente
+			# rete qui, va bene chiamarla direttamente sul thread GUI.
 			self.currentEntries = self.provider.listEntries(category.id) or []
 		except Exception as e:
 			self.currentEntries = []
-			self["info"].setText(_("Errore: %s") % e)
+			self["info"].setText(_("Error: %s") % e)
 		self["entries"].setList([
 			"%s  (%s)" % (e.name, e.date) if e.date else e.name
 			for e in self.currentEntries
@@ -151,9 +147,9 @@ class SettingsBrowser(Screen):
 	def _updateInfo(self):
 		installed = getInstalledInfo(self.provider.id)
 		if installed:
-			self["info"].setText(_("Installato: %s (%s)") % (installed.get("name") or "?", installed.get("date") or "?"))
+			self["info"].setText(_("Installed: %s (%s)") % (installed.get("name") or "?", installed.get("date") or "?"))
 		else:
-			self["info"].setText(_("Nessun setting installato per questo provider."))
+			self["info"].setText(_("Nothing installed yet for this provider."))
 
 	# --- installazione ---------------------------------------------
 	def keyInstall(self):
@@ -165,14 +161,13 @@ class SettingsBrowser(Screen):
 			return
 		entry = self.currentEntries[index]
 		installed = getInstalledInfo(self.provider.id)
-		# Scarichiamo solo se la data e' diversa da quella gia' installata:
-		# se e' lo stesso pacchetto con la stessa data, serve una conferma
-		# esplicita in piu' (non un download silenzioso e inutile).
+		# Stessa data gia' installata: chiedi conferma esplicita invece di
+		# riscaricare in silenzio lo stesso pacchetto.
 		if installed and installed.get("name") == entry.name and entry.date and installed.get("date") == entry.date:
 			self.session.openWithCallback(
 				lambda confirmed: self._onInstallConfirmed(entry, confirmed),
 				MessageBox,
-				_("'%s' e' gia' installato con questa data (%s).\nRiscaricarlo comunque?") % (entry.name, entry.date),
+				_("'%s' is already installed with this date (%s).\nDownload it again anyway?") % (entry.name, entry.date),
 				MessageBox.TYPE_YESNO,
 				default=False,
 			)
@@ -180,17 +175,17 @@ class SettingsBrowser(Screen):
 		self.session.openWithCallback(
 			lambda confirmed: self._onInstallConfirmed(entry, confirmed),
 			MessageBox,
-			_("Installare '%s'?\n%s") % (entry.name, entry.description or ""),
+			_("Install '%s'?\n%s") % (entry.name, entry.description or ""),
 			MessageBox.TYPE_YESNO,
 		)
 
 	def _onInstallConfirmed(self, entry, confirmed):
 		if not confirmed:
 			return
-		progressBox = self.session.open(MessageBox, _("Installazione di '%s' in corso...") % entry.name, MessageBox.TYPE_INFO, enable_input=False)
+		progressBox = self.session.open(MessageBox, _("Installing '%s'...") % entry.name, MessageBox.TYPE_INFO, enable_input=False)
 
 		def progress(percent, message=""):
-			pass  # punto di estensione: una barra di progresso reale verra' aggiunta in seguito
+			pass  # punto di estensione per una barra di progresso reale
 
 		def done(success, message=""):
 			if success:
@@ -200,14 +195,14 @@ class SettingsBrowser(Screen):
 		try:
 			self.provider.install(entry, progress, done)
 		except Exception as e:
-			self._afterClose(progressBox, lambda: self.session.open(MessageBox, _("Errore nell'avviare l'installazione:\n%s") % e, MessageBox.TYPE_ERROR))
+			self._afterClose(progressBox, lambda: self.session.open(MessageBox, _("Could not start the install:\n%s") % e, MessageBox.TYPE_ERROR))
 
 	def _showInstallResult(self, success, message, entry):
 		if success:
 			self._updateInfo()
-			self.session.open(MessageBox, _("Installazione completata:\n%s") % (message or entry.name), MessageBox.TYPE_INFO, timeout=5)
+			self.session.open(MessageBox, _("Install complete:\n%s") % (message or entry.name), MessageBox.TYPE_INFO, timeout=5)
 		else:
-			self.session.open(MessageBox, _("Installazione fallita:\n%s") % (message or "?"), MessageBox.TYPE_ERROR)
+			self.session.open(MessageBox, _("Install failed:\n%s") % (message or "?"), MessageBox.TYPE_ERROR)
 
 	def _afterClose(self, closeable, fn):
 		if closeable is not None:
@@ -226,10 +221,8 @@ class SettingsBrowser(Screen):
 		self.session.openWithCallback(self._onSettingsClosed, HubSetup)
 
 	def _onSettingsClosed(self, *args):
-		# Se in Impostazioni e' stato scelto un altro setting man, questa
-		# schermata (gia' legata al provider vecchio) si chiude e main.py la
-		# riapre da capo su quello nuovo - non basta tornare qui, altrimenti
-		# si vedrebbe ancora la lista del provider precedente.
+		# Se e' stato scelto un altro setting man, chiudi: main.py riapre
+		# la schermata sul provider nuovo invece di restare su quello vecchio.
 		from Plugins.Extensions.SettingsHub.config import getActiveProvider
 		newProvider = getActiveProvider()
 		if newProvider is not None and newProvider.id != self.provider.id:

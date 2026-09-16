@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-SettingsHub - scheletro base modulare per "setting man" multipli.
+SettingsHub - base modulare per "setting man" multipli.
 
 Un settingman e' un plugin Extensions/<Nome> a se stante che, nel proprio
-plugin.py, registra un provider tramite api.registerProvider(). Questo
-plugin.py qui dentro carica solo:
-  - i provider inclusi in providers/ (solo il demo, per ora - vedi
-    providers/__init__.py:discover());
-  - il servizio di autocheck configurabile (autocheck.py);
-  - le voci di menu per aprire la UI (screens/main.py).
+plugin.py, registra un provider tramite api.registerProvider(). Qui carica i
+provider inclusi in providers/, il servizio di autocheck (autocheck.py) e le
+voci di menu per la UI (screens/main.py).
 """
 from Plugins.Plugin import PluginDescriptor
 
@@ -48,7 +45,7 @@ def Plugins(**kwargs):
 	return [
 		PluginDescriptor(
 			name=_("Setting Manager Hub"),
-			description=_("Base modulare per setting man multipli"),
+			description=_("Multi setting-man channel list manager"),
 			where=[PluginDescriptor.WHERE_EXTENSIONSMENU, PluginDescriptor.WHERE_PLUGINMENU],
 			icon="plugin.png",
 			fnc=Main,

@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Fetch e parsing di https://www.vhannibal.net/asd.php, la pagina che elenca i
-pacchetti di setting disponibili. Nessuna dipendenza da 'enigma'/api qui
-dentro apposta: e' testabile anche fuori da Enigma2 con un python3 qualsiasi.
-
-Le funzioni di rete (fetchCatalog) vanno chiamate SOLO da un thread di
-background (vedi provider.py, che usa api.runInThread)."""
+Fetch e parsing di https://www.vhannibal.net/asd.php. Nessuna dipendenza da
+'enigma'/api: testabile anche fuori da Enigma2. fetchCatalog va chiamata
+solo da un thread di background (vedi provider.py)."""
 import html
 import re
 import urllib.request

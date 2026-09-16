@@ -1,20 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Fetch e parsing del repository GitHub
-https://github.com/ciefp/ciefpsettings-enigma2-zipped, che pubblica gli zip
-di setting direttamente alla radice del repo (via GitHub Contents API,
-niente scraping HTML). Nessuna dipendenza da 'enigma'/api qui dentro
-apposta: e' testabile anche fuori da Enigma2 con un python3 qualsiasi.
-
-I nomi dei pacchetti sono del tipo "ciefp-E2-<Nsat>sat<suffisso posizioni>-
-<gg>.<mm>.<aaaa>.zip" (es. "ciefp-E2-10sat-39E-28E-...-0.8W-05.09.2026.zip")
-oppure, per un paio di casi speciali senza il conteggio esplicito,
-"ciefp-E2-75E-34W-05.09.2026.zip". Le categorie sono bucket per numero di
-posizioni satellitari coperte (Mono/Dual/Trial/Quad/Multi), sullo stesso
-schema gia' usato per Vhannibal/Morpheus883.
-
-Le funzioni di rete (fetchCatalog) vanno chiamate SOLO da un thread di
-background (vedi provider.py, che usa api.runInThread)."""
+Fetch e parsing del repo GitHub
+https://github.com/ciefp/ciefpsettings-enigma2-zipped via GitHub Contents
+API. Pacchetti tipo "ciefp-E2-<Nsat>sat<posizioni>-<gg>.<mm>.<aaaa>.zip";
+categorie per numero di posizioni satellitari (Mono/Dual/Trial/Quad/Multi),
+stesso schema di Vhannibal/Morpheus883. fetchCatalog va chiamata solo da un
+thread di background (vedi provider.py)."""
 import json
 import re
 import urllib.request

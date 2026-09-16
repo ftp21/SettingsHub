@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Fetch e parsing di http://morpheus883.altervista.org/settings/morph883.xml,
-il feed XML ufficiale che elenca i pacchetti di setting disponibili (molto
-piu' semplice e stabile del parsing della homepage HTML usato in precedenza).
-Nessuna dipendenza da 'enigma'/api qui dentro apposta: e' testabile anche
-fuori da Enigma2 con un python3 qualsiasi.
-
-Le funzioni di rete (fetchCatalog) vanno chiamate SOLO da un thread di
-background (vedi provider.py, che usa api.runInThread)."""
+Fetch e parsing del feed XML ufficiale
+http://morpheus883.altervista.org/settings/morph883.xml. Nessuna dipendenza
+da 'enigma'/api: testabile anche fuori da Enigma2. fetchCatalog va chiamata
+solo da un thread di background (vedi provider.py)."""
 import re
 import urllib.request
 from xml.etree import ElementTree

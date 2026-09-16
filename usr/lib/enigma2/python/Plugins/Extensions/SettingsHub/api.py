@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Contratto pubblico di SettingsHub.
-
-Un "settingman" e' un normale plugin Enigma2 (Extensions/<NomePlugin>) che,
-nel proprio plugin.py, importa questo modulo e registra un'istanza di
-SettingProvider:
+Contratto pubblico di SettingsHub: un settingman e' un plugin
+Extensions/<Nome> che nel suo plugin.py registra un SettingProvider.
 
     from Plugins.Extensions.SettingsHub.api import SettingProvider, SettingCategory, SettingEntry, registerProvider
 
@@ -22,10 +19,6 @@ SettingProvider:
             ...
 
     registerProvider(MyProvider())
-
-Questo modulo non importa MAI screens/plugin.py dell'hub: deve restare
-leggero e sicuro da importare da qualsiasi altro plugin, in qualsiasi ordine
-di caricamento.
 """
 import threading
 
@@ -62,36 +55,24 @@ class SettingProvider:
 	icon = None         # path assoluto a un png, opzionale
 
 	def getCategories(self):
-		"""Ritorna una lista di SettingCategory. Puo' fare rete (l'hub la
-		chiama sempre dentro api.runInThread con un indicatore di
-		caricamento, mai direttamente sul thread GUI - vedi screens/main.py)."""
+		"""Puo' fare rete: chiamata sempre dentro api.runInThread, mai sul thread GUI."""
 		return []
 
 	def listEntries(self, category_id):
-		"""Ritorna una lista di SettingEntry per la categoria data. Stessa
-		regola di getCategories: puo' fare rete, l'hub la chiama sempre in
-		background."""
+		"""SettingEntry della categoria data. Stessa regola di getCategories."""
 		return []
 
 	def getInstalledInfo(self):
-		"""Ritorna un dict con lo stato corrente, es.
-		{'entry_id': ..., 'date': ..., 'name': ...} oppure None se nulla e'
-		mai stato installato. Letto dalla config del provider (vedi config.py),
-		non da file propri."""
+		"""{'entry_id', 'date', 'name'} oppure None se non installato."""
 		return None
 
 	def checkForUpdates(self):
-		"""Chiamata SOLO in un thread di background (mai sul thread GUI):
-		puo' fare rete. Deve ritornare un SettingEntry se e' disponibile un
-		aggiornamento rispetto a getInstalledInfo(), altrimenti None."""
+		"""Solo in background. SettingEntry se c'e' un aggiornamento, altrimenti None."""
 		return None
 
 	def install(self, entry, progress, done):
-		"""Avvia l'installazione di 'entry'. Deve essere non bloccante per il
-		thread GUI: usa runInThread() qui sotto per il lavoro pesante.
-		- progress(percent, message): callback opzionale per aggiornare l'UI (0-100)
-		- done(success, message): callback OBBLIGATORIA da invocare a fine lavoro,
-		  chiamata gia' sul thread GUI."""
+		"""Non bloccante: usa runInThread() per il lavoro pesante.
+		progress(percent, message) e' opzionale, done(success, message) e' obbligatoria."""
 		raise NotImplementedError
 
 
@@ -121,12 +102,8 @@ _activeTimers = set()
 
 def runInThread(work, callback):
 	"""Esegue work() in un thread separato e richiama callback(result, error)
-	sul thread GUI (via eTimer, l'unico modo sicuro di rientrare nella UI di
-	Enigma2 da un thread esterno). error e' un'eccezione oppure None.
-
-	Questo e' L'UNICO modo supportato per un provider di fare lavoro
-	potenzialmente bloccante (rete, disco lento, unzip, ...): mai chiamare
-	direttamente funzioni bloccanti dal thread GUI."""
+	sul thread GUI (via eTimer: l'unico modo sicuro di rientrare nella UI
+	da un thread esterno)."""
 	result_box = {}
 
 	def target():

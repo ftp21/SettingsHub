@@ -1,15 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Download ed applicazione generica di un pacchetto di setting distribuito
-come archivio (zip oppure tar.gz) contenente lamedb/bouquets - il formato
-piu' comune tra i setting man. Condiviso tra provider diversi (vedi
-providers/vhannibal, providers/morpheus) per non riscrivere la stessa logica
-in ognuno: un provider nuovo il cui sito distribuisce zip o tar.gz con
-lamedb dentro puo' limitarsi a chiamare installArchivePackage(), senza
-reimplementare download/estrazione/merge.
-
-Tutte le funzioni qui sono bloccanti di proposito (rete, disco, estrazione):
-vanno chiamate SOLO dentro api.runInThread, mai sul thread GUI."""
+Download ed applicazione di un pacchetto di setting in zip o tar.gz
+(lamedb/bouquets), condiviso tra i provider che distribuiscono in questo
+formato. Bloccante di proposito: va chiamato solo dentro api.runInThread."""
 import os
 import shutil
 import tarfile
@@ -19,17 +12,15 @@ import zipfile
 
 from Plugins.Extensions.SettingsHub import favorites
 from Plugins.Extensions.SettingsHub.config import config as hubConfig, getFavoritesSelection
+from Plugins.Extensions.SettingsHub.language import _
 
 ENIGMA2_DIR = "/etc/enigma2"
 CHANNEL_LIST_NAMES = ("lamedb", "lamedb5", "bouquets.tv", "bouquets.radio")
 
 
 def installArchivePackage(url, user_agent, temp_prefix="settingshub_"):
-	"""Scarica ed applica un pacchetto zip o tar.gz di setting standard
-	(contiene lamedb/bouquets/satellites.xml alla radice o in una
-	sottocartella, es. etc/enigma2/...). Il formato e' rilevato dai byte
-	scaricati, non dall'estensione dell'url. Salva/ripristina automaticamente
-	i bouquet preferiti scelti dall'utente (vedi favorites.py). Ritorna
+	"""Formato rilevato dai byte scaricati, non dall'estensione dell'url.
+	Salva/ripristina i bouquet preferiti (vedi favorites.py). Ritorna
 	(True, messaggio) oppure (False, errore)."""
 	req = urllib.request.Request(url, headers={"User-Agent": user_agent})
 	with urllib.request.urlopen(req, timeout=60) as response:
@@ -49,19 +40,19 @@ def installArchivePackage(url, user_agent, temp_prefix="settingshub_"):
 				with zipfile.ZipFile(archivePath) as zf:
 					zf.extractall(extractDir)
 			except zipfile.BadZipFile:
-				return False, "Il file scaricato non e' un archivio zip valido."
+				return False, _("The downloaded file is not a valid zip archive.")
 		elif data[:2] == b"\x1f\x8b":
 			try:
 				with tarfile.open(archivePath, "r:gz") as tf:
 					tf.extractall(extractDir)
 			except tarfile.TarError:
-				return False, "Il file scaricato non e' un archivio tar.gz valido."
+				return False, _("The downloaded file is not a valid tar.gz archive.")
 		else:
-			return False, "Formato di archivio non riconosciuto (atteso zip o tar.gz)."
+			return False, _("Unrecognized archive format (expected zip or tar.gz).")
 
 		sourceDir = _findLamedbDir(extractDir)
 		if sourceDir is None:
-			return False, "Il pacchetto scaricato non contiene un lamedb valido."
+			return False, _("The downloaded package does not contain a valid lamedb.")
 
 		# Nessun on/off separato: se l'utente non ha scelto nessun bouquet da
 		# preservare (schermata "Scegli i bouquet da preservare"), selection
@@ -75,9 +66,9 @@ def installArchivePackage(url, user_agent, temp_prefix="settingshub_"):
 		if savedCount:
 			restoredCount = favorites.restore(hubConfig.plugins.settingshub.favorites_snapshot)
 
-		message = "Nuovo setting applicato."
+		message = _("New setting applied.")
 		if savedCount:
-			message += f" Bouquet preferiti ripristinati: {restoredCount}/{savedCount}."
+			message += " " + _("Favorite bouquets restored: %(restored)d/%(saved)d.") % {"restored": restoredCount, "saved": savedCount}
 		return True, message
 	finally:
 		shutil.rmtree(workDir, ignore_errors=True)

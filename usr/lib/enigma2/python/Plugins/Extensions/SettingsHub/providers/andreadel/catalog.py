@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Fetch e parsing del repository GitHub
-https://github.com/Andreadel1984/Liste-Canali-Enigma2-Italia, che pubblica
-gli zip di setting direttamente alla radice del repo (via GitHub Contents
-API, niente scraping HTML). Nessuna dipendenza da 'enigma'/api qui dentro
-apposta: e' testabile anche fuori da Enigma2 con un python3 qualsiasi.
-
-Le funzioni di rete (fetchCatalog) vanno chiamate SOLO da un thread di
-background (vedi provider.py, che usa api.runInThread)."""
+Fetch e parsing del repo GitHub
+https://github.com/Andreadel1984/Liste-Canali-Enigma2-Italia via GitHub
+Contents API (niente scraping HTML). Nessuna dipendenza da 'enigma'/api:
+testabile anche fuori da Enigma2. fetchCatalog va chiamata solo da un
+thread di background (vedi provider.py)."""
 import json
 import re
 import urllib.request

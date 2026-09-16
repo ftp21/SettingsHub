@@ -15,45 +15,36 @@ from Plugins.Extensions.SettingsHub.language import _
 
 
 class HubSetup(ConfigListScreen, Screen):
-	"""Impostazioni generali di SettingsHub: quando controllare i nuovi
-	setting e QUALE (uno solo) setting man usare. Nessuno skin custom: usa
-	esattamente lo skin di sistema per 'Setup' (skinName=['Setup']), lo
-	stesso di ogni altra schermata di configurazione Enigma2.
+	"""Impostazioni generali: quale setting man usare e quando controllare
+	aggiornamenti. Skin di sistema 'Setup'. 'Azzera i setting' e' rara e
+	distruttiva, quindi sta dietro al tasto MENU invece che in lista.
 
-	'Bouquet da preservare' e' una riga normale: si usa abbastanza spesso da
-	meritare di essere visibile. 'Azzera i setting' invece e' rarissima e
-	distruttiva: sta dietro al tasto MENU (qui in Impostazioni, non nella
-	schermata principale che si usa in continuazione), senza nemmeno un
-	sottomenu visto che e' l'unica voce li' dentro.
-
-	Fa anche da configurazione guidata al primo avvio (firstRun=True): in tal
-	caso il tasto rosso e' disabilitato (non si puo' annullare una
-	configurazione che non esiste ancora) e serve un setting man scelto per
-	poter salvare."""
+	Fa anche da configurazione guidata al primo avvio (firstRun=True): tasto
+	rosso disabilitato e serve un setting man scelto per poter salvare."""
 
 	skin = SystemSetup.skin
 
 	def __init__(self, session, firstRun=False):
 		Screen.__init__(self, session)
 		self.firstRun = firstRun
-		self.setTitle(_("Configurazione guidata SettingsHub") if firstRun else _("Impostazioni SettingsHub"))
+		self.setTitle(_("SettingsHub setup wizard") if firstRun else _("SettingsHub settings"))
 		self.skinName = ["Setup"]
 
 		providers = api.getProviders()
-		providerChoices = [(p.id, p.name) for p in providers] or [("", _("Nessun setting man installato"))]
+		providerChoices = [(p.id, p.name) for p in providers] or [("", _("No setting man installed"))]
 		currentActive = config.plugins.settingshub.active_provider_id.value
 		if currentActive not in [c[0] for c in providerChoices]:
 			currentActive = providerChoices[0][0]
 		self.activeProviderConfig = ConfigSelection(default=providerChoices[0][0], choices=providerChoices)
 		self.activeProviderConfig.value = currentActive
 
-		self.favoritesEntry = getConfigListEntry(_("Bouquet da preservare (OK per scegliere)"), ConfigNothing())
+		self.favoritesEntry = getConfigListEntry(_("Bouquets to preserve (OK to choose)"), ConfigNothing())
 
 		self.list = [
-			getConfigListEntry(_("Setting man da usare"), self.activeProviderConfig),
-			getConfigListEntry(_("Controlla nuovi setting"), config.plugins.settingshub.autocheck_interval),
-			getConfigListEntry(_("Orario del controllo"), config.plugins.settingshub.autocheck_time),
-			getConfigListEntry(_("Solo notifica (non installare da solo)"), config.plugins.settingshub.autocheck_notify_only),
+			getConfigListEntry(_("Setting man to use"), self.activeProviderConfig),
+			getConfigListEntry(_("Check for new settings"), config.plugins.settingshub.autocheck_interval),
+			getConfigListEntry(_("Check time"), config.plugins.settingshub.autocheck_time),
+			getConfigListEntry(_("Notify only (don't install automatically)"), config.plugins.settingshub.autocheck_notify_only),
 			self.favoritesEntry,
 		]
 
@@ -63,18 +54,18 @@ class HubSetup(ConfigListScreen, Screen):
 		self["footnote"] = Label()
 		self["footnote"].hide()
 		descriptionText = (
-			_("Benvenuto! Scegli il setting man da usare e quando controllare i nuovi setting, poi salva.")
-			if firstRun else _("MENU per azzerare i setting installati (ripristina base).")
+			_("Welcome! Choose which setting man to use and when to check for updates, then save.")
+			if firstRun else _("MENU to reset the installed settings.")
 		)
 		self["description"] = Label(descriptionText + "\n\n" + CREDITS)
 
-		actions = {"green": (self.keySave, _("Salva"))}
+		actions = {"green": (self.keySave, _("Save"))}
 		if not firstRun:
-			actions["red"] = (self.keyCancel, _("Annulla"))
-		self["setupActions"] = HelpableActionMap(self, ["ColorActions"], actions, prio=0, description=_("Azioni SettingsHub"))
+			actions["red"] = (self.keyCancel, _("Cancel"))
+		self["setupActions"] = HelpableActionMap(self, ["ColorActions"], actions, prio=0, description=_("SettingsHub actions"))
 		self["menuActions"] = HelpableActionMap(self, ["MenuActions"], {
-			"menu": (self._confirmReset, _("Azzera i setting installati")),
-		}, prio=0, description=_("Azioni SettingsHub"))
+			"menu": (self._confirmReset, _("Reset installed settings")),
+		}, prio=0, description=_("SettingsHub actions"))
 		if firstRun:
 			self["key_red"].setText("")
 
@@ -95,7 +86,7 @@ class HubSetup(ConfigListScreen, Screen):
 		self.session.openWithCallback(
 			self._onResetConfirmed,
 			MessageBox,
-			_("Cancellare TUTTI i canali e bouquet attuali e dimenticare il setting installato per '%s'?\nNon torna indietro: serve per ripartire da una base pulita e riscaricare tutto da capo.") % providerName,
+			_("Delete ALL current channels and bouquets and forget the setting installed for '%s'?\nThis cannot be undone: use it to start fresh and re-download everything.") % providerName,
 			MessageBox.TYPE_YESNO,
 			default=False,
 		)
@@ -106,11 +97,11 @@ class HubSetup(ConfigListScreen, Screen):
 		from Plugins.Extensions.SettingsHub import reset
 		reset.resetChannelData()
 		reset.resetProviderInstalledInfo(self.activeProviderConfig.value)
-		self.session.open(MessageBox, _("Fatto: canali azzerati e setting dimenticato. Ora puoi reinstallare da capo."), MessageBox.TYPE_INFO, timeout=5)
+		self.session.open(MessageBox, _("Done: channels reset and setting forgotten. You can now reinstall from scratch."), MessageBox.TYPE_INFO, timeout=5)
 
 	def keySave(self):
 		if not self.activeProviderConfig.value:
-			self.session.open(MessageBox, _("Nessun setting man disponibile: installa un plugin setting man e riprova."), MessageBox.TYPE_WARNING, timeout=5)
+			self.session.open(MessageBox, _("No setting man available: install a setting man plugin and try again."), MessageBox.TYPE_WARNING, timeout=5)
 			return
 		config.plugins.settingshub.active_provider_id.value = self.activeProviderConfig.value
 		config.plugins.settingshub.active_provider_id.save()

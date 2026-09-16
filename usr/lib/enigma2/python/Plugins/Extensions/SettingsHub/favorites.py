@@ -1,21 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Preserva i bouquet personali dell'utente (TV o radio, qualsiasi tipo:
-digitale terrestre, satellite, misto...) attraverso l'installazione di un
-nuovo pacchetto di setting (qualunque provider). Approccio scelto
-deliberatamente semplice: non ricalcola l'LCN da zero con tabelle regionali
-(come faceva il vecchio NGsetting con rules.xml) - salva selezione, ordine
-interno E POSIZIONE ASSOLUTA (l'indice in bouquets.tv/bouquets.radio) dei
-bouquet correnti, che per l'utente e' gia' quella giusta, e ritrova ogni
-canale nel nuovo lamedb cercando lo stesso servizio per identita'
-(onid, tsid, sid), non per posizione nel file. Un canale non piu' presente
-nel nuovo setting viene semplicemente saltato; un bouquet torna ad
-ESATTAMENTE la sua posizione originale (es. terzo in lista prima -> terzo in
-lista dopo), e viene riscritto come 'userbouquet.<nome-sanificato>.tv/radio'.
+Preserva i bouquet personali (TV/radio) attraverso l'installazione di un
+nuovo pacchetto di setting: salva selezione, ordine e posizione assoluta dei
+bouquet correnti, poi ritrova ogni canale nel nuovo lamedb per identita'
+(onid, tsid, sid), non per posizione. Un canale non piu' presente viene
+saltato; un bouquet torna esattamente alla sua posizione originale.
 
-Salvato come JSON dentro un ConfigText (config.plugins.settingshub.*): resta
-config nativa Enigma2, solo con un valore strutturato invece di uno scalare.
-"""
+Salvato come JSON dentro un ConfigText (config.plugins.settingshub.*)."""
 import json
 import os
 import re

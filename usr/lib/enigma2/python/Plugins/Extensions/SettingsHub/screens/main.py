@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Punto d'ingresso di SettingsHub, in stile EPGImport:
-  - primo avvio (nessuna configurazione salvata): apre la configurazione
-    guidata (screens/setup.py in modalita' firstRun) prima di qualunque altra
-    cosa - l'utente sceglie li' quale (uno solo) setting man usare e quando
-    controllare i nuovi setting;
-  - avvii successivi: va dritto alla schermata a due colonne del setting man
-    attivo (screens/browser.py). Da li', MENU -> 'Cambia setting man' riapre
-    la configurazione per sceglierne un altro."""
+Punto d'ingresso di SettingsHub: al primo avvio apre la configurazione
+guidata (setup.py in modalita' firstRun), poi va dritto al browser del
+setting man attivo (browser.py)."""
 from Screens.MessageBox import MessageBox
 
 from Plugins.Extensions.SettingsHub.config import config, getActiveProvider
@@ -33,7 +28,7 @@ def _afterFirstRun(session):
 def _openActiveProvider(session):
 	provider = getActiveProvider()
 	if provider is None:
-		session.open(MessageBox, _("Nessun setting man installato."), MessageBox.TYPE_INFO, timeout=5)
+		session.open(MessageBox, _("No setting man installed."), MessageBox.TYPE_INFO, timeout=5)
 		return
 	# SettingsBrowser puo' chiudersi con self.close() SENZA argomenti (es. il
 	# tasto rosso/Esci, che nell'ActionMap e' collegato direttamente a
