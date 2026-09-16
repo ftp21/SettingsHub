@@ -50,6 +50,7 @@ def Plugins(**kwargs):
 			name=_("Setting Manager Hub"),
 			description=_("Base modulare per setting man multipli"),
 			where=[PluginDescriptor.WHERE_EXTENSIONSMENU, PluginDescriptor.WHERE_PLUGINMENU],
+			icon="plugin.png",
 			fnc=Main,
 		),
 		PluginDescriptor(where=PluginDescriptor.WHERE_EXTENSIONSINGLE, fnc=openFromInfoBar),
