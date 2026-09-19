@@ -161,3 +161,30 @@ msgstr "Formato di archivio non riconosciuto (atteso zip o tar.gz)."
 
 msgid "Welcome! Choose which setting man to use and when to check for updates, then save."
 msgstr "Benvenuto! Scegli il setting man da usare e quando controllare i nuovi setting, poi salva."
+
+msgid "Done: DVB-T tuner rescanned and the LCN bouquet rebuilt."
+msgstr "Fatto: tuner DVB-T scansionato di nuovo e bouquet LCN ricostruito."
+
+msgid "No LCN bouquet found: run 'LCN Scanner' at least once first."
+msgstr "Nessun bouquet LCN trovato: esegui prima almeno una volta 'Scanner LCN'."
+
+msgid "Rebuild method"
+msgstr "Metodo di ricostruzione"
+
+msgid "Recreate LCN bouquet after settings update"
+msgstr "Ricrea il bouquet LCN dopo l'aggiornamento dei setting"
+
+msgid "Recreate LCN bouquet now (DVB-T) - OK to run"
+msgstr "Ricrea il bouquet LCN ora (DVB-T) - OK per eseguire"
+
+msgid "Rescan DVB-T (slower, verifies the signal)"
+msgstr "Riscansiona il DVB-T (più lento, verifica il segnale)"
+
+msgid "Rescan the DVB-T tuner now and rebuild the LCN bouquet from it?"
+msgstr "Riscansionare ora il tuner DVB-T e ricostruire il bouquet LCN da questo?"
+
+msgid "Reuse existing lamedb (instant, no rescan)"
+msgstr "Riusa il lamedb esistente (istantaneo, nessuna scansione)"
+
+msgid "The DVB-T tuner was rescanned and the LCN bouquet rebuilt."
+msgstr "Il tuner DVB-T è stato riscansionato e il bouquet LCN ricostruito."

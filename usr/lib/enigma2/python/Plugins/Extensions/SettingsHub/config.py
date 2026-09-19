@@ -35,6 +35,23 @@ config.plugins.settingshub.active_provider_id = ConfigText(default="")  # un sol
 config.plugins.settingshub.autocheck_interval = ConfigSelection(default="daily", choices=AUTOCHECK_INTERVALS)
 config.plugins.settingshub.autocheck_time = ConfigClock(default=_DEFAULT_AUTOCHECK_TIME)
 config.plugins.settingshub.autocheck_notify_only = ConfigYesNo(default=False)  # solo notifica, non installa da solo
+# Mostrato solo se Plugins.SystemPlugins.LCNScanner e' installato (vedi
+# screens/setup.py): se Si' (default), un'installazione settings che trova un
+# bouquet gestito da LCNScanner rifa' da sola lo scan DVB-T e ricostruisce il
+# bouquet (vedi lcn_integration.py). Se No, l'update dei settings lascia stare
+# quel bouquet - resta comunque disponibile l'azione manuale "Recreate LCN
+# bouquet" per farlo a comando in qualsiasi momento.
+config.plugins.settingshub.recreate_lcn_after_update = ConfigYesNo(default=True)
+# Come ricostruire il bouquet quando recreate_lcn_after_update e' Si' (vedi
+# lcn_integration.py): "scan" rifa' una vera scansione DVB-T dopo l'update
+# (accurato, verifica il segnale, ma richiede qualche minuto e passa dal
+# tuner); "preserve" non tocca il tuner - reinserisce nel lamedb nuovo le
+# stesse voci DVB-T che c'erano in quello vecchio (istantaneo, ma non
+# verifica che quei canali siano ancora ricevibili cosi' come sono).
+config.plugins.settingshub.lcn_rebuild_method = ConfigSelection(default="scan", choices=[
+	("scan", _("Rescan DVB-T (slower, verifies the signal)")),
+	("preserve", _("Reuse existing lamedb (instant, no rescan)")),
+])
 config.plugins.settingshub.last_check = ConfigText(default="")  # ISO datetime dell'ultimo check, sola lettura
 config.plugins.settingshub.favorites_snapshot = ConfigText(default="")  # JSON, gestito da favorites.py
 # Quali bouquet preservare (vedi screens/choose_favorites.py): di default

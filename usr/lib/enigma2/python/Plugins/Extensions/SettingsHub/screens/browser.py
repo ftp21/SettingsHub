@@ -13,7 +13,8 @@ from Screens.MessageBox import MessageBox
 from Screens.Screen import Screen
 
 from Plugins.Extensions.SettingsHub import api
-from Plugins.Extensions.SettingsHub.config import getInstalledInfo, setInstalledInfo
+from Plugins.Extensions.SettingsHub import lcn_integration
+from Plugins.Extensions.SettingsHub.config import config, getInstalledInfo, setInstalledInfo
 from Plugins.Extensions.SettingsHub.credits import CREDITS
 from Plugins.Extensions.SettingsHub.language import _
 
@@ -182,6 +183,20 @@ class SettingsBrowser(Screen):
 	def _onInstallConfirmed(self, entry, confirmed):
 		if not confirmed:
 			return
+		# Checked BEFORE the install runs, not after: installing replaces the
+		# whole lamedb (DVB-T included), so by the time install() returns, any
+		# bouquet LCNScanner manages is already gone from bouquets.tv/radio -
+		# checking afterwards would always see "nothing there" and never
+		# trigger the rescan this is meant to cause. See lcn_integration.py.
+		# Only the "scan" method is handled here (it needs a session/UI, which
+		# only exists at this point, after install() has returned): "preserve"
+		# has already run inside archive_installer.py, in the background
+		# thread, before the lamedb was even replaced.
+		rescanForLCN = (
+			config.plugins.settingshub.recreate_lcn_after_update.value
+			and lcn_integration.rebuildMethod() == "scan"
+			and lcn_integration.shouldRescanForLCN()
+		)
 		progressBox = self.session.open(MessageBox, _("Installing '%s'...") % entry.name, MessageBox.TYPE_INFO, enable_input=False)
 
 		def progress(percent, message=""):
@@ -190,16 +205,34 @@ class SettingsBrowser(Screen):
 		def done(success, message=""):
 			if success:
 				setInstalledInfo(self.provider.id, entry)
-			self._afterClose(progressBox, lambda: self._showInstallResult(success, message, entry))
+			# Rather than trying to preserve the old DVB-T references (pointless -
+			# the new lamedb doesn't have them), rescan and let LCNScanner rebuild
+			# the bouquet from what the rescan finds.
+			if success and rescanForLCN:
+				self._afterClose(progressBox, lambda: self._rescanForLCN(success, message, entry))
+			else:
+				self._afterClose(progressBox, lambda: self._showInstallResult(success, message, entry))
 
 		try:
 			self.provider.install(entry, progress, done)
 		except Exception as e:
 			self._afterClose(progressBox, lambda: self.session.open(MessageBox, _("Could not start the install:\n%s") % e, MessageBox.TYPE_ERROR))
 
-	def _showInstallResult(self, success, message, entry):
+	def _rescanForLCN(self, success, message, entry):
+		def onRescanDone(*unused_result):
+			self._showInstallResult(success, message, entry, rescanned=True)
+
+		try:
+			lcn_integration.startRescan(self.session, onRescanDone)
+		except Exception as err:
+			print(f"[SettingsHub] Warning: could not start the DVB-T rescan for LCNScanner.  ({err})")
+			self._showInstallResult(success, message, entry)
+
+	def _showInstallResult(self, success, message, entry, rescanned=False):
 		if success:
 			self._updateInfo()
+			if rescanned:
+				message = (message + "\n" if message else "") + _("The DVB-T tuner was rescanned and the LCN bouquet rebuilt.")
 			self.session.open(MessageBox, _("Install complete:\n%s") % (message or entry.name), MessageBox.TYPE_INFO, timeout=5)
 		else:
 			self.session.open(MessageBox, _("Install failed:\n%s") % (message or "?"), MessageBox.TYPE_ERROR)

@@ -11,6 +11,7 @@ import urllib.request
 import zipfile
 
 from Plugins.Extensions.SettingsHub import favorites
+from Plugins.Extensions.SettingsHub import lcn_integration
 from Plugins.Extensions.SettingsHub.config import config as hubConfig, getFavoritesSelection
 from Plugins.Extensions.SettingsHub.language import _
 
@@ -60,7 +61,24 @@ def installArchivePackage(url, user_agent, temp_prefix="settingshub_"):
 		selection = getFavoritesSelection()
 		savedCount = favorites.save(hubConfig.plugins.settingshub.favorites_snapshot, selection)
 
+		# Metodo "preserve" per il bouquet LCNScanner (vedi lcn_integration.py):
+		# va catturato PRIMA che _applyChannelList() sovrascriva il lamedb, non
+		# dopo - qui, non in screens/browser.py, perche' e' l'unico punto che
+		# vede ancora il lamedb VECCHIO. Il metodo "scan" invece non fa nulla
+		# qui: se ne occupa browser.py con una vera scansione a installazione
+		# finita (serve una sessione/UI che qui non c'e', essendo dentro
+		# api.runInThread).
+		usePreserve = (
+			hubConfig.plugins.settingshub.recreate_lcn_after_update.value
+			and lcn_integration.rebuildMethod() == "preserve"
+			and lcn_integration.shouldRescanForLCN()
+		)
+		preservedLamedb = lcn_integration.capturePreservedLamedb() if usePreserve else None
+
 		_applyChannelList(sourceDir)
+
+		if preservedLamedb:
+			lcn_integration.applyPreservedLamedb(preservedLamedb)
 
 		restoredCount = 0
 		if savedCount:
@@ -69,6 +87,8 @@ def installArchivePackage(url, user_agent, temp_prefix="settingshub_"):
 		message = _("New setting applied.")
 		if savedCount:
 			message += " " + _("Favorite bouquets restored: %(restored)d/%(saved)d.") % {"restored": restoredCount, "saved": savedCount}
+		if preservedLamedb:
+			message += " " + _("LCN bouquet rebuilt from the existing lamedb (no DVB-T rescan).")
 		return True, message
 	finally:
 		shutil.rmtree(workDir, ignore_errors=True)
@@ -108,3 +128,14 @@ def _applyChannelList(sourceDir):
 	if os.path.exists(satellitesPath):
 		os.makedirs("/etc/tuxbox", exist_ok=True)
 		shutil.copyfile(satellitesPath, "/etc/tuxbox/satellites.xml")
+
+	# Senza questo, eServiceCenter continua a rispondere con il lamedb VECCHIO
+	# (ancora in cache) finche' enigma2 non viene riavviato. favorites.restore(),
+	# chiamato subito dopo _applyChannelList(), cerca ogni canale salvato nel
+	# lamedb "attuale" tramite _currentServicesByKey(): senza il reload qui,
+	# quella ricerca risolve ancora contro il lamedb vecchio, e i riferimenti
+	# scritti nel bouquet ripristinato smettono di funzionare (mostrando N/A)
+	# non appena enigma2 ricarica per conto suo il lamedb NUOVO appena scritto
+	# su disco (es. al riavvio successivo).
+	from enigma import eDVBDB
+	eDVBDB.getInstance().reloadServicelist()

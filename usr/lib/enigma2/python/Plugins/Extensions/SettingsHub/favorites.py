@@ -105,11 +105,16 @@ def snapshot(selection=None):
 	e' l'indice originale nella lista di appartenenza, riapplicato alla
 	lettera in restore(). Se 'selection' non e' None, include solo i bouquet
 	il cui nome file e' in quel set (vedi screens/choose_favorites.py e
-	config.getFavoritesSelection)."""
+	config.getFavoritesSelection). Esclude comunque i bouquet che LCNScanner
+	gestisce gia' da solo (vedi _lcnScannerManagedBouquets()), anche se una
+	selezione salvata in precedenza li elenca ancora."""
+	excluded = _lcnScannerManagedBouquets()
 	result = []
 	for kind in BOUQUET_KINDS:
 		for position, path in _bouquetEntriesFor(kind):
 			fileName = os.path.basename(path)
+			if fileName in excluded:
+				continue
 			if selection is not None and fileName not in selection:
 				continue
 			try:
@@ -137,14 +142,38 @@ def snapshot(selection=None):
 	return result
 
 
+def _lcnScannerManagedBouquets():
+	"""Nomi file dei bouquet che Plugins.SystemPlugins.LCNScanner gestisce gia'
+	da solo (vedi lcn_integration.py): un settings update li fa ricostruire da
+	zero con una scansione DVB-T, quindi non ha senso proporli anche qui come
+	bouquet da "preservare" - il vecchio meccanismo (salva per identita' di
+	canale, ripristina) sarebbe ridondante e sui canali terrestri non
+	funzionerebbe comunque (il nuovo lamedb non li contiene piu' finche' non
+	si rifa' lo scan). Set vuoto se LCNScanner non e' installato."""
+	try:
+		from Plugins.SystemPlugins.LCNScanner.plugin import MANAGED_BOUQUETS_FILENAME
+	except ImportError:
+		return set()
+	try:
+		with open(os.path.join(ENIGMA2_DIR, MANAGED_BOUQUETS_FILENAME), "r", encoding="utf-8") as f:
+			names = json.load(f)
+		return set(names) if isinstance(names, list) else set()
+	except (OSError, ValueError):
+		return set()
+
+
 def listUserBouquets():
 	"""Versione leggera di snapshot(), solo per farli scegliere all'utente:
 	ritorna [(fileName, title), ...] (TV e radio insieme) senza leggere i
-	canali di ognuno."""
+	canali di ognuno. Esclude i bouquet che LCNScanner gestisce gia' da solo
+	(vedi _lcnScannerManagedBouquets())."""
+	excluded = _lcnScannerManagedBouquets()
 	result = []
 	for kind in BOUQUET_KINDS:
 		for _position, path in _bouquetEntriesFor(kind):
 			fileName = os.path.basename(path)
+			if fileName in excluded:
+				continue
 			title = fileName
 			try:
 				with open(path, "r", encoding="utf-8", errors="ignore") as f:

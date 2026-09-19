@@ -8,10 +8,17 @@ from Screens.Screen import Screen
 from Screens.Setup import Setup as SystemSetup
 
 from Plugins.Extensions.SettingsHub import api
+from Plugins.Extensions.SettingsHub import lcn_integration
 from Plugins.Extensions.SettingsHub.autocheck import autoCheckService
 from Plugins.Extensions.SettingsHub.config import config, persist
 from Plugins.Extensions.SettingsHub.credits import CREDITS
 from Plugins.Extensions.SettingsHub.language import _
+
+try:
+	from Plugins.SystemPlugins.LCNScanner.plugin import hasManagedBouquetInstalled  # noqa: F401
+	_LCNSCANNER_INSTALLED = True
+except ImportError:
+	_LCNSCANNER_INSTALLED = False
 
 
 class HubSetup(ConfigListScreen, Screen):
@@ -47,6 +54,16 @@ class HubSetup(ConfigListScreen, Screen):
 			getConfigListEntry(_("Notify only (don't install automatically)"), config.plugins.settingshub.autocheck_notify_only),
 			self.favoritesEntry,
 		]
+		# Entrambe solo se LCNScanner e' installato: il toggle abilita/disabilita
+		# lo scan DVB-T + ricostruzione bouquet automatici dopo un update dei
+		# settings (vedi screens/browser.py e lcn_integration.py); l'azione sotto
+		# fa la stessa cosa ma subito, a comando, indipendentemente dal toggle.
+		self.restoreLCNEntry = None
+		if _LCNSCANNER_INSTALLED:
+			self.list.append(getConfigListEntry(_("Recreate LCN bouquet after settings update"), config.plugins.settingshub.recreate_lcn_after_update))
+			self.list.append(getConfigListEntry(_("Rebuild method"), config.plugins.settingshub.lcn_rebuild_method))
+			self.restoreLCNEntry = getConfigListEntry(_("Recreate LCN bouquet now (DVB-T) - OK to run"), ConfigNothing())
+			self.list.append(self.restoreLCNEntry)
 
 		ConfigListScreen.__init__(self, self.list, session=session, on_change=self.changedEntry, fullUI=True)
 		# Il skin di sistema 'Setup' si aspetta anche questi due widget
@@ -77,7 +94,24 @@ class HubSetup(ConfigListScreen, Screen):
 			from Plugins.Extensions.SettingsHub.screens.choose_favorites import openChooseFavorites
 			openChooseFavorites(self.session)
 			return
+		if self.restoreLCNEntry is not None and self["config"].getCurrent() is self.restoreLCNEntry:
+			self._confirmRestoreLCN()
+			return
 		ConfigListScreen.keySelect(self)
+
+	def _confirmRestoreLCN(self):
+		if not lcn_integration.shouldRescanForLCN():
+			self.session.open(MessageBox, _("No LCN bouquet found: run 'LCN Scanner' at least once first."), MessageBox.TYPE_INFO, timeout=5)
+			return
+		self.session.openWithCallback(self._onRestoreLCNConfirmed, MessageBox, _("Rescan the DVB-T tuner now and rebuild the LCN bouquet from it?"), MessageBox.TYPE_YESNO, default=True)
+
+	def _onRestoreLCNConfirmed(self, confirmed):
+		if not confirmed:
+			return
+		lcn_integration.startRescan(self.session, self._onRestoreLCNDone)
+
+	def _onRestoreLCNDone(self, *unused_result):
+		self.session.open(MessageBox, _("Done: DVB-T tuner rescanned and the LCN bouquet rebuilt."), MessageBox.TYPE_INFO, timeout=5)
 
 	def _confirmReset(self):
 		if self.firstRun:
