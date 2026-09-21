@@ -61,16 +61,32 @@ def installArchivePackage(url, user_agent, temp_prefix="settingshub_"):
 		selection = getFavoritesSelection()
 		savedCount = favorites.save(hubConfig.plugins.settingshub.favorites_snapshot, selection)
 
-		# Metodo "preserve" per il bouquet LCNScanner (vedi lcn_integration.py):
-		# va catturato PRIMA che _applyChannelList() sovrascriva il lamedb, non
+		# Cattura/ripristino del bouquet LCNScanner (vedi lcn_integration.py):
+		# va fatto PRIMA che _applyChannelList() sovrascriva il lamedb, non
 		# dopo - qui, non in screens/browser.py, perche' e' l'unico punto che
-		# vede ancora il lamedb VECCHIO. Il metodo "scan" invece non fa nulla
-		# qui: se ne occupa browser.py con una vera scansione a installazione
-		# finita (serve una sessione/UI che qui non c'e', essendo dentro
-		# api.runInThread).
+		# vede ancora il lamedb VECCHIO.
+		#
+		# Gira SEMPRE quando c'e' un bouquet da salvare, non solo se l'utente
+		# ha scelto il metodo "preserve": e' l'unica rete di sicurezza che
+		# esiste per un'installazione senza sessione/UI (autocheck.py chiama
+		# provider.install() direttamente, mai screens/browser.py). Se non
+		# facessimo cosi', con il metodo di default "scan" - che serve una
+		# vera sessione per aprire ServiceScan e che quindi puo' scattare
+		# solo dal flusso manuale in browser.py - un'installazione automatica
+		# cancellerebbe il bouquet gestito da LCNScanner senza MAI
+		# ricostruirlo (bug osservato: dopo un autoinstall reale, i file
+		# userbouquet.terrestrial_lcn.* sparivano e non tornavano piu').
+		#
+		# Per il metodo "scan" questo e' comunque solo un ripristino
+		# provvisorio e "grezzo" (nessuna verifica del segnale): se
+		# l'installazione arriva dal flusso manuale, browser.py fa poi la
+		# vera scansione DVB-T e la sua LCNScanner().lcnScan() sovrascrive
+		# questo risultato con dati aggiornati - vedi _rescanForLCN() li'.
+		# Per un'installazione automatica invece questo e' anche il
+		# risultato finale: preferiamo un bouquet "grezzo" ma presente a un
+		# bouquet sparito del tutto.
 		usePreserve = (
 			hubConfig.plugins.settingshub.recreate_lcn_after_update.value
-			and lcn_integration.rebuildMethod() == "preserve"
 			and lcn_integration.shouldRescanForLCN()
 		)
 		preservedLamedb = lcn_integration.capturePreservedLamedb() if usePreserve else None

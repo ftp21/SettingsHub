@@ -5,21 +5,27 @@ Integrazione opzionale con Plugins.SystemPlugins.LCNScanner.
 Un pacchetto di settings sostituisce l'intero lamedb, DVB-T incluso: i vecchi
 servizi terrestri (e quindi ogni bouquet che li referenzia, come quello creato
 da LCNScanner) restano orfani finche' qualcosa non li rimette a posto. Due
-modi, scelti da config.plugins.settingshub.lcn_rebuild_method (vedi
-screens/setup.py):
+meccanismi, non alternativi:
 
-- "scan" (default, piu' accurato): rifa' una vera scansione DVB-T (solo
-  aggiunta, niente satellite/cavo) e lascia che LCNScanner ricostruisca il
-  bouquet sui canali appena trovati. Serve una sessione/UI (usato da
-  screens/browser.py DOPO che l'installazione e' finita).
-- "preserve" (istantaneo, "dirty"): invece di rifare lo scan, salva le righe
-  transponder/servizi DVB-T (namespace EEEE0000) del lamedb VECCHIO prima che
-  venga sovrascritto, e le rimette dentro quello NUOVO cosi' come sono - stessa
+- "preserve" (sempre, in archive_installer.py): salva le righe transponder/
+  servizi DVB-T (namespace EEEE0000) del lamedb VECCHIO prima che venga
+  sovrascritto, e le rimette dentro quello NUOVO cosi' come sono - stessa
   idea di NGsetting/plugin/Moduli/Setting.py (SaveTrasponderService/
   CreateBouquetForce): nessuna verifica che i canali siano ancora ricevibili
-  cosi', ma e' immediato e non tocca il tuner. Va chiamato PRIMA/DOPO
-  _applyChannelList() dentro archive_installer.py, nello stesso thread di
-  background dell'installazione - non serve nessuna sessione/UI.
+  cosi', ma e' immediato, non tocca il tuner e non serve nessuna sessione/UI
+  - gira nello stesso thread di background dell'installazione. E' l'unica
+  rete di sicurezza disponibile quando l'installazione parte senza una
+  sessione utente attiva (autocheck.py chiama provider.install()
+  direttamente, mai screens/browser.py): senza questo, un'installazione
+  automatica cancellerebbe il bouquet gestito da LCNScanner senza mai
+  ricostruirlo.
+- "scan" (in aggiunta, solo se config.plugins.settingshub.lcn_rebuild_method
+  == "scan", vedi screens/setup.py): rifa' una vera scansione DVB-T (solo
+  aggiunta, niente satellite/cavo) e lascia che LCNScanner ricostruisca il
+  bouquet sui canali appena trovati, sovrascrivendo il risultato "grezzo" di
+  preserve con dati verificati. Serve una sessione/UI, quindi puo' scattare
+  solo dal flusso manuale (screens/browser.py, DOPO che l'installazione e'
+  finita) - un'installazione automatica resta con il risultato di preserve.
 
 Questo modulo non fa nulla se LCNScanner non e' installato, o se non e'
 presente nessun bouquet che LCNScanner gestisce (vedi

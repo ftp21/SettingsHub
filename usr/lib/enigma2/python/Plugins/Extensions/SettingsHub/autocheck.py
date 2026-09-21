@@ -1,7 +1,15 @@
 # -*- coding: utf-8 -*-
 """Scheduler del controllo automatico nuovi setting, intervallo/orario
 configurabile dall'utente (vedi config.py). Non blocca mai il thread GUI:
-ogni provider viene interrogato dentro api.runInThread."""
+ogni provider viene interrogato dentro api.runInThread.
+
+Lo scheduling e' ancorato all'orologio/last_check, non al momento del boot:
+molti decoder vanno ogni giorno in standby profondo con wakeup RTC, quindi
+la sessione enigma2 non arriva mai a 24h continue di uptime. Un timer
+relativo avviato da zero ad ogni SessionStart (come startLongTimer(24h))
+non scatta mai in quel caso. Ricalcolando qui "quanti secondi mancano"
+rispetto a un orario fisso (per "daily") o all'ultimo check riuscito (per
+6h/12h), il riavvio giornaliero non azzera piu' il progresso."""
 import time
 
 from enigma import eTimer
@@ -27,10 +35,63 @@ class AutoCheckService:
 		interval = config.plugins.settingshub.autocheck_interval.value
 		if interval == "off":
 			return
-		seconds = AUTOCHECK_INTERVAL_SECONDS.get(interval)
-		if not seconds:
-			return
-		self.timer.startLongTimer(seconds)
+		if interval == "daily":
+			seconds = self._secondsUntilNextDailySlot()
+		else:
+			intervalSeconds = AUTOCHECK_INTERVAL_SECONDS.get(interval)
+			if not intervalSeconds:
+				return
+			seconds = self._secondsUntilNextRelativeSlot(intervalSeconds)
+		self.timer.startLongTimer(max(int(seconds), 1))
+
+	def _lastCheckEpoch(self):
+		raw = config.plugins.settingshub.last_check.value
+		if not raw:
+			return None
+		try:
+			return time.mktime(time.strptime(raw, "%Y-%m-%d %H:%M:%S"))
+		except ValueError:
+			return None
+
+	CATCH_UP_DELAY = 120  # secondi: margine per lasciare respirare l'avvio sessione/rete
+	CATCH_UP_THRESHOLD = 20 * 3600  # secondi
+
+	def _secondsUntilNextDailySlot(self):
+		"""Prossimo orario configurato (autocheck_time): oggi se non ancora
+		passato, altrimenti domani. Ricalcolato da zero ad ogni chiamata,
+		quindi non serve restare accesi 24h filate perche' il check scatti.
+
+		Caso da non rompere di nuovo: un decoder che va ogni giorno in
+		standby profondo e si risveglia SEMPRE dopo l'orario configurato
+		(es. sveglia alle 9-10, target 06:00) non e' mai acceso esattamente
+		a quell'ora - se ci limitassimo a "rimanda a domani alla stessa ora"
+		il check non scatterebbe mai, in pratica lo stesso bug di prima solo
+		spostato. Se l'ultimo check risale a piu' di CATCH_UP_THRESHOLD fa
+		(o non e' mai stato fatto), consideriamo lo slot di oggi "perso per
+		spegnimento" e recuperiamo a breve invece di aspettare un altro
+		giorno intero."""
+		lastCheck = self._lastCheckEpoch()
+		now = time.time()
+		if lastCheck is None or (now - lastCheck) >= self.CATCH_UP_THRESHOLD:
+			return self.CATCH_UP_DELAY
+
+		hour, minute = config.plugins.settingshub.autocheck_time.value
+		local = time.localtime(now)
+		target = time.mktime((local.tm_year, local.tm_mon, local.tm_mday, hour, minute, 0, 0, 0, -1))
+		if target <= now:
+			target += 24 * 3600
+		return target - now
+
+	def _secondsUntilNextRelativeSlot(self, intervalSeconds):
+		"""Per 6h/12h: ancorato all'ultimo check riuscito (config.last_check),
+		non al boot corrente - un riavvio a meta' intervallo non fa ripartire
+		il conto da capo. Se non c'e' ancora mai stato un check, parte
+		dall'intervallo pieno."""
+		lastCheck = self._lastCheckEpoch()
+		if lastCheck is None:
+			return intervalSeconds
+		remaining = (lastCheck + intervalSeconds) - time.time()
+		return remaining if remaining > 0 else 1
 
 	def checkNow(self, resultCallback=None):
 		"""Avvia un check manuale/automatico. resultCallback(updates), dove
