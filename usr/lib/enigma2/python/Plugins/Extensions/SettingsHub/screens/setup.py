@@ -7,6 +7,7 @@ from Screens.MessageBox import MessageBox
 from Screens.Screen import Screen
 from Screens.Setup import Setup as SystemSetup
 
+from Plugins.Extensions.SettingsHub import abm_integration
 from Plugins.Extensions.SettingsHub import api
 from Plugins.Extensions.SettingsHub import lcn_integration
 from Plugins.Extensions.SettingsHub.autocheck import autoCheckService
@@ -19,6 +20,8 @@ try:
 	_LCNSCANNER_INSTALLED = True
 except ImportError:
 	_LCNSCANNER_INSTALLED = False
+
+_ABM_INSTALLED = abm_integration.isABMInstalled()
 
 
 class HubSetup(ConfigListScreen, Screen):
@@ -65,6 +68,15 @@ class HubSetup(ConfigListScreen, Screen):
 			self.restoreLCNEntry = getConfigListEntry(_("Recreate LCN bouquet now (DVB-T) - OK to run"), ConfigNothing())
 			self.list.append(self.restoreLCNEntry)
 
+		# Stessa cosa dei tre elementi LCNScanner sopra, ma per
+		# AutoBouquetsMaker (vedi abm_integration.py).
+		self.restoreABMEntry = None
+		if _ABM_INSTALLED:
+			self.list.append(getConfigListEntry(_("Recreate ABM bouquet(s) after settings update"), config.plugins.settingshub.recreate_abm_after_update))
+			self.list.append(getConfigListEntry(_("Rebuild method (ABM)"), config.plugins.settingshub.abm_rebuild_method))
+			self.restoreABMEntry = getConfigListEntry(_("Recreate ABM bouquet(s) now - OK to run"), ConfigNothing())
+			self.list.append(self.restoreABMEntry)
+
 		ConfigListScreen.__init__(self, self.list, session=session, on_change=self.changedEntry, fullUI=True)
 		# Il skin di sistema 'Setup' si aspetta anche questi due widget
 		# (li crea normalmente Screens.Setup.Setup, che qui non chiamiamo).
@@ -97,6 +109,9 @@ class HubSetup(ConfigListScreen, Screen):
 		if self.restoreLCNEntry is not None and self["config"].getCurrent() is self.restoreLCNEntry:
 			self._confirmRestoreLCN()
 			return
+		if self.restoreABMEntry is not None and self["config"].getCurrent() is self.restoreABMEntry:
+			self._confirmRestoreABM()
+			return
 		ConfigListScreen.keySelect(self)
 
 	def _confirmRestoreLCN(self):
@@ -112,6 +127,20 @@ class HubSetup(ConfigListScreen, Screen):
 
 	def _onRestoreLCNDone(self, *unused_result):
 		self.session.open(MessageBox, _("Done: DVB-T tuner rescanned and the LCN bouquet rebuilt."), MessageBox.TYPE_INFO, timeout=5)
+
+	def _confirmRestoreABM(self):
+		if not abm_integration.shouldRescanForABM():
+			self.session.open(MessageBox, _("No ABM bouquet found: run 'AutoBouquetsMaker' at least once first."), MessageBox.TYPE_INFO, timeout=5)
+			return
+		self.session.openWithCallback(self._onRestoreABMConfirmed, MessageBox, _("Run AutoBouquetsMaker now and rebuild its bouquet(s) from the providers already configured in it?"), MessageBox.TYPE_YESNO, default=True)
+
+	def _onRestoreABMConfirmed(self, confirmed):
+		if not confirmed:
+			return
+		abm_integration.startRescan(self.session, self._onRestoreABMDone)
+
+	def _onRestoreABMDone(self, *unused_result):
+		self.session.open(MessageBox, _("Done: AutoBouquetsMaker bouquet(s) rebuilt."), MessageBox.TYPE_INFO, timeout=5)
 
 	def _confirmReset(self):
 		if self.firstRun:

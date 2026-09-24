@@ -6,13 +6,23 @@ bouquet correnti, poi ritrova ogni canale nel nuovo lamedb per identita'
 (onid, tsid, sid), non per posizione. Un canale non piu' presente viene
 saltato; un bouquet torna esattamente alla sua posizione originale.
 
-Salvato come JSON dentro un ConfigText (config.plugins.settingshub.*)."""
+Salvato come JSON dentro un ConfigText (config.plugins.settingshub.*).
+
+Esclude sempre i bouquet che LCNScanner o AutoBouquetsMaker gestiscono gia'
+da soli (vedi _lcnScannerManagedBouquets()/_abmManagedBouquets()): quelli
+hanno il proprio meccanismo di preservazione dedicato
+(lcn_integration.py/abm_integration.py)."""
 import json
 import os
 import re
 import unicodedata
 
 ENIGMA2_DIR = "/etc/enigma2"
+
+# Stesso prefisso che usa AutoBouquetsMaker per i propri bouquet
+# (ABM_BOUQUET_PREFIX in Plugins.SystemPlugins.AutoBouquetsMaker.scanner.main.
+# AutoBouquetsMaker) - vedi _abmManagedBouquets() e abm_integration.py.
+ABM_BOUQUET_PREFIX = "userbouquet.abm."
 
 # type nel riferimento '#SERVICE 1:7:<type>:...FROM BOUQUET' e estensione file,
 # per distinguere un bouquet TV da uno radio.
@@ -106,9 +116,10 @@ def snapshot(selection=None):
 	lettera in restore(). Se 'selection' non e' None, include solo i bouquet
 	il cui nome file e' in quel set (vedi screens/choose_favorites.py e
 	config.getFavoritesSelection). Esclude comunque i bouquet che LCNScanner
-	gestisce gia' da solo (vedi _lcnScannerManagedBouquets()), anche se una
+	o AutoBouquetsMaker gestiscono gia' da soli (vedi
+	_lcnScannerManagedBouquets()/_abmManagedBouquets()), anche se una
 	selezione salvata in precedenza li elenca ancora."""
-	excluded = _lcnScannerManagedBouquets()
+	excluded = _lcnScannerManagedBouquets() | _abmManagedBouquets()
 	result = []
 	for kind in BOUQUET_KINDS:
 		for position, path in _bouquetEntriesFor(kind):
@@ -162,12 +173,30 @@ def _lcnScannerManagedBouquets():
 		return set()
 
 
+def _abmManagedBouquets():
+	"""Nomi file dei bouquet che AutoBouquetsMaker gestisce gia' da solo
+	(riconosciuti dal prefisso ABM_BOUQUET_PREFIX, lo stesso che usa lui):
+	un settings update li ricostruisce da zero (vedi abm_integration.py),
+	quindi non ha senso proporli anche qui come bouquet da "preservare" - a
+	differenza di LCNScanner non serve controllare se il plugin e'
+	installato, il prefisso basta a riconoscerli anche se ABM e' stato
+	rimosso nel frattempo."""
+	result = set()
+	if not os.path.isdir(ENIGMA2_DIR):
+		return result
+	for name in os.listdir(ENIGMA2_DIR):
+		if name.startswith(ABM_BOUQUET_PREFIX) and (name.endswith(".tv") or name.endswith(".radio")):
+			result.add(name)
+	return result
+
+
 def listUserBouquets():
 	"""Versione leggera di snapshot(), solo per farli scegliere all'utente:
 	ritorna [(fileName, title), ...] (TV e radio insieme) senza leggere i
-	canali di ognuno. Esclude i bouquet che LCNScanner gestisce gia' da solo
-	(vedi _lcnScannerManagedBouquets())."""
-	excluded = _lcnScannerManagedBouquets()
+	canali di ognuno. Esclude i bouquet che LCNScanner o AutoBouquetsMaker
+	gestiscono gia' da soli (vedi
+	_lcnScannerManagedBouquets()/_abmManagedBouquets())."""
+	excluded = _lcnScannerManagedBouquets() | _abmManagedBouquets()
 	result = []
 	for kind in BOUQUET_KINDS:
 		for _position, path in _bouquetEntriesFor(kind):

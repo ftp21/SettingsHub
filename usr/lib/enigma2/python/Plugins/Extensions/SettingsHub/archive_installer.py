@@ -10,6 +10,7 @@ import tempfile
 import urllib.request
 import zipfile
 
+from Plugins.Extensions.SettingsHub import abm_integration
 from Plugins.Extensions.SettingsHub import favorites
 from Plugins.Extensions.SettingsHub import lcn_integration
 from Plugins.Extensions.SettingsHub.config import config as hubConfig, getFavoritesSelection
@@ -81,20 +82,31 @@ def installArchivePackage(url, user_agent, temp_prefix="settingshub_"):
 		# provvisorio e "grezzo" (nessuna verifica del segnale): se
 		# l'installazione arriva dal flusso manuale, browser.py fa poi la
 		# vera scansione DVB-T e la sua LCNScanner().lcnScan() sovrascrive
-		# questo risultato con dati aggiornati - vedi _rescanForLCN() li'.
+		# questo risultato con dati aggiornati - vedi _runRescanChain() li'.
 		# Per un'installazione automatica invece questo e' anche il
 		# risultato finale: preferiamo un bouquet "grezzo" ma presente a un
 		# bouquet sparito del tutto.
-		usePreserve = (
+		usePreserveLCN = (
 			hubConfig.plugins.settingshub.recreate_lcn_after_update.value
 			and lcn_integration.shouldRescanForLCN()
 		)
-		preservedLamedb = lcn_integration.capturePreservedLamedb() if usePreserve else None
+		preservedLamedb = lcn_integration.capturePreservedLamedb() if usePreserveLCN else None
+
+		# Stessa rete di sicurezza di preservedLamedb sopra, ma per i bouquet
+		# ABM (vedi abm_integration.py): anche qui va catturato PRIMA che
+		# _applyChannelList() cancelli i vecchi userbouquet.*.tv/.radio e
+		# sovrascriva il lamedb.
+		usePreserveABM = (
+			hubConfig.plugins.settingshub.recreate_abm_after_update.value
+			and abm_integration.shouldRescanForABM()
+		)
+		preservedABM = abm_integration.capturePreservedABM() if usePreserveABM else None
 
 		_applyChannelList(sourceDir)
 
 		if preservedLamedb:
 			lcn_integration.applyPreservedLamedb(preservedLamedb)
+		abmRestored = abm_integration.applyPreservedABM(preservedABM) if preservedABM else False
 
 		restoredCount = 0
 		if savedCount:
@@ -105,6 +117,8 @@ def installArchivePackage(url, user_agent, temp_prefix="settingshub_"):
 			message += " " + _("Favorite bouquets restored: %(restored)d/%(saved)d.") % {"restored": restoredCount, "saved": savedCount}
 		if preservedLamedb:
 			message += " " + _("LCN bouquet rebuilt from the existing lamedb (no DVB-T rescan).")
+		if abmRestored:
+			message += " " + _("ABM bouquet(s) rebuilt from the existing lamedb (no rescan).")
 		return True, message
 	finally:
 		shutil.rmtree(workDir, ignore_errors=True)

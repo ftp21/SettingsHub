@@ -188,3 +188,30 @@ msgstr "Riusa il lamedb esistente (istantaneo, nessuna scansione)"
 
 msgid "The DVB-T tuner was rescanned and the LCN bouquet rebuilt."
 msgstr "Il tuner DVB-T è stato riscansionato e il bouquet LCN ricostruito."
+
+msgid "ABM bouquet(s) rebuilt from the existing lamedb (no rescan)."
+msgstr "Bouquet ABM ricostruiti dal lamedb esistente (nessuna scansione)."
+
+msgid "Done: AutoBouquetsMaker bouquet(s) rebuilt."
+msgstr "Fatto: bouquet AutoBouquetsMaker ricostruiti."
+
+msgid "No ABM bouquet found: run 'AutoBouquetsMaker' at least once first."
+msgstr "Nessun bouquet ABM trovato: esegui prima almeno una volta 'AutoBouquetsMaker'."
+
+msgid "Rebuild method (ABM)"
+msgstr "Metodo di ricostruzione (ABM)"
+
+msgid "Recreate ABM bouquet(s) after settings update"
+msgstr "Ricrea i bouquet ABM dopo l'aggiornamento dei setting"
+
+msgid "Recreate ABM bouquet(s) now - OK to run"
+msgstr "Ricrea i bouquet ABM ora - OK per eseguire"
+
+msgid "Rescan with AutoBouquetsMaker (slower, verifies the signal)"
+msgstr "Riscansiona con AutoBouquetsMaker (più lento, verifica il segnale)"
+
+msgid "Run AutoBouquetsMaker now and rebuild its bouquet(s) from the providers already configured in it?"
+msgstr "Eseguire ora AutoBouquetsMaker e ricostruire i suoi bouquet dai provider già configurati al suo interno?"
+
+msgid "The ABM bouquet(s) were rebuilt by AutoBouquetsMaker."
+msgstr "I bouquet ABM sono stati ricostruiti da AutoBouquetsMaker."

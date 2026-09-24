@@ -52,6 +52,16 @@ config.plugins.settingshub.lcn_rebuild_method = ConfigSelection(default="scan", 
 	("scan", _("Rescan DVB-T (slower, verifies the signal)")),
 	("preserve", _("Reuse existing lamedb (instant, no rescan)")),
 ])
+# Stessa cosa di recreate_lcn_after_update/lcn_rebuild_method sopra, ma per
+# Plugins.SystemPlugins.AutoBouquetsMaker (vedi abm_integration.py): mostrato
+# solo se ABM e' installato (screens/setup.py). "scan" apre la vera
+# schermata di scansione di ABM, usando i provider gia' configurati
+# dall'utente dentro ABM stesso.
+config.plugins.settingshub.recreate_abm_after_update = ConfigYesNo(default=True)
+config.plugins.settingshub.abm_rebuild_method = ConfigSelection(default="scan", choices=[
+	("scan", _("Rescan with AutoBouquetsMaker (slower, verifies the signal)")),
+	("preserve", _("Reuse existing lamedb (instant, no rescan)")),
+])
 config.plugins.settingshub.last_check = ConfigText(default="")  # ISO datetime dell'ultimo check, sola lettura
 config.plugins.settingshub.favorites_snapshot = ConfigText(default="")  # JSON, gestito da favorites.py
 # Quali bouquet preservare (vedi screens/choose_favorites.py): di default

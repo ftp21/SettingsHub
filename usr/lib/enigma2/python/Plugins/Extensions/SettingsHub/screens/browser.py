@@ -12,6 +12,7 @@ from Components.MenuList import MenuList
 from Screens.MessageBox import MessageBox
 from Screens.Screen import Screen
 
+from Plugins.Extensions.SettingsHub import abm_integration
 from Plugins.Extensions.SettingsHub import api
 from Plugins.Extensions.SettingsHub import lcn_integration
 from Plugins.Extensions.SettingsHub.config import config, getInstalledInfo, setInstalledInfo
@@ -184,18 +185,29 @@ class SettingsBrowser(Screen):
 		if not confirmed:
 			return
 		# Checked BEFORE the install runs, not after: installing replaces the
-		# whole lamedb (DVB-T included), so by the time install() returns, any
-		# bouquet LCNScanner manages is already gone from bouquets.tv/radio -
+		# whole lamedb, so by the time install() returns, any bouquet
+		# LCNScanner/ABM manages is already gone from bouquets.tv/radio -
 		# checking afterwards would always see "nothing there" and never
-		# trigger the rescan this is meant to cause. See lcn_integration.py.
-		# Only the "scan" method is handled here (it needs a session/UI, which
-		# only exists at this point, after install() has returned): "preserve"
-		# has already run inside archive_installer.py, in the background
-		# thread, before the lamedb was even replaced.
+		# trigger the rescan this is meant to cause. See lcn_integration.py/
+		# abm_integration.py. Only the "scan" method is handled here (it needs
+		# a session/UI, which only exists at this point, after install() has
+		# returned): "preserve" has already run inside archive_installer.py,
+		# in the background thread, before the lamedb was even replaced.
 		rescanForLCN = (
 			config.plugins.settingshub.recreate_lcn_after_update.value
 			and lcn_integration.rebuildMethod() == "scan"
 			and lcn_integration.shouldRescanForLCN()
+		)
+		# Stessa cosa di rescanForLCN sopra, ma per AutoBouquetsMaker (vedi
+		# abm_integration.py). Le due cose sono indipendenti - un decoder
+		# puo' avere sia LCNScanner sia ABM installati insieme - quindi
+		# vengono messe in coda ed eseguite una dopo l'altra (vedi
+		# _runRescanChain()) invece che in parallelo, per non litigarsi il
+		# tuner.
+		rescanForABM = (
+			config.plugins.settingshub.recreate_abm_after_update.value
+			and abm_integration.rebuildMethod() == "scan"
+			and abm_integration.shouldRescanForABM()
 		)
 		progressBox = self.session.open(MessageBox, _("Installing '%s'...") % entry.name, MessageBox.TYPE_INFO, enable_input=False)
 
@@ -205,11 +217,16 @@ class SettingsBrowser(Screen):
 		def done(success, message=""):
 			if success:
 				setInstalledInfo(self.provider.id, entry)
-			# Rather than trying to preserve the old DVB-T references (pointless -
-			# the new lamedb doesn't have them), rescan and let LCNScanner rebuild
-			# the bouquet from what the rescan finds.
+			# Rather than trying to preserve the old references (pointless - the
+			# new lamedb doesn't have them), rescan and let LCNScanner/ABM
+			# rebuild their bouquet(s) from what the rescan finds.
+			pending = []
 			if success and rescanForLCN:
-				self._afterClose(progressBox, lambda: self._rescanForLCN(success, message, entry))
+				pending.append((lcn_integration.startRescan, _("The DVB-T tuner was rescanned and the LCN bouquet rebuilt."), "could not start the DVB-T rescan for LCNScanner"))
+			if success and rescanForABM:
+				pending.append((abm_integration.startRescan, _("The ABM bouquet(s) were rebuilt by AutoBouquetsMaker."), "could not start the AutoBouquetsMaker rescan"))
+			if pending:
+				self._afterClose(progressBox, lambda: self._runRescanChain(pending, success, message, entry))
 			else:
 				self._afterClose(progressBox, lambda: self._showInstallResult(success, message, entry))
 
@@ -218,21 +235,32 @@ class SettingsBrowser(Screen):
 		except Exception as e:
 			self._afterClose(progressBox, lambda: self.session.open(MessageBox, _("Could not start the install:\n%s") % e, MessageBox.TYPE_ERROR))
 
-	def _rescanForLCN(self, success, message, entry):
+	def _runRescanChain(self, pending, success, message, entry, extraNotes=None):
+		"""Esegue 'pending' (lista di (startFn, doneNote, warnLabel), vedi
+		_onInstallConfirmed()) una voce alla volta, invece che in parallelo -
+		vedi il commento su rescanForABM li'."""
+		extraNotes = extraNotes or []
+		if not pending:
+			self._showInstallResult(success, message, entry, extraNotes=extraNotes)
+			return
+
+		startFn, doneNote, warnLabel = pending[0]
+		rest = pending[1:]
+
 		def onRescanDone(*unused_result):
-			self._showInstallResult(success, message, entry, rescanned=True)
+			self._runRescanChain(rest, success, message, entry, extraNotes + [doneNote])
 
 		try:
-			lcn_integration.startRescan(self.session, onRescanDone)
+			startFn(self.session, onRescanDone)
 		except Exception as err:
-			print(f"[SettingsHub] Warning: could not start the DVB-T rescan for LCNScanner.  ({err})")
-			self._showInstallResult(success, message, entry)
+			print(f"[SettingsHub] Warning: {warnLabel}.  ({err})")
+			self._runRescanChain(rest, success, message, entry, extraNotes)
 
-	def _showInstallResult(self, success, message, entry, rescanned=False):
+	def _showInstallResult(self, success, message, entry, extraNotes=None):
 		if success:
 			self._updateInfo()
-			if rescanned:
-				message = (message + "\n" if message else "") + _("The DVB-T tuner was rescanned and the LCN bouquet rebuilt.")
+			for note in (extraNotes or []):
+				message = (message + "\n" if message else "") + note
 			self.session.open(MessageBox, _("Install complete:\n%s") % (message or entry.name), MessageBox.TYPE_INFO, timeout=5)
 		else:
 			self.session.open(MessageBox, _("Install failed:\n%s") % (message or "?"), MessageBox.TYPE_ERROR)

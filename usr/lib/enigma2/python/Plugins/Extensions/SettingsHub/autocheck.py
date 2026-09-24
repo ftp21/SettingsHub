@@ -14,6 +14,7 @@ import time
 
 from enigma import eTimer
 
+from Plugins.Extensions.SettingsHub import abm_integration
 from Plugins.Extensions.SettingsHub import api
 from Plugins.Extensions.SettingsHub.config import config, getActiveProvider, persist, setInstalledInfo, AUTOCHECK_INTERVAL_SECONDS
 from Plugins.Extensions.SettingsHub.language import _
@@ -153,7 +154,39 @@ class AutoCheckService:
 		def installDone(success, message=""):
 			if success:
 				setInstalledInfo(provider.id, entry)
-			self._notifyInstallResult(provider, entry, success, message)
+			# A differenza di LCNScanner (dove i canali cambiano cosi' poco che
+			# il "preserve" grezzo gia' fatto dentro provider.install(), via
+			# archive_installer.py, e' sufficiente anche qui), ABM gestisce
+			# tipicamente bouquet satellite (es. tivusat) che conviene
+			# ricostruire per davvero anche quando l'installazione parte da
+			# sola: a differenza del flusso manuale (browser.py) qui non c'e'
+			# nessuna schermata SettingsHub aperta dopo a farlo scattare, quindi
+			# va fatto scattare direttamente da qui - self.session esiste gia'
+			# (impostata da gotSession() all'avvio, vedi plugin.py) anche se
+			# non e' mai passata da nessuna schermata SettingsHub. Questo apre
+			# davvero la schermata di scansione di ABM (tuning live) senza che
+			# l'utente l'abbia chiesto in quel momento: accettato di proposito,
+			# a differenza di LCN, perche' per bouquet satellite un rebuild
+			# "grezzo" senza mai verificare il segnale e' molto piu' rischioso.
+			rescanForABM = (
+				success
+				and self.session is not None
+				and config.plugins.settingshub.recreate_abm_after_update.value
+				and abm_integration.rebuildMethod() == "scan"
+				and abm_integration.shouldRescanForABM()
+			)
+			if not rescanForABM:
+				self._notifyInstallResult(provider, entry, success, message)
+				return
+
+			def onRescanDone(*unused_result):
+				self._notifyInstallResult(provider, entry, success, message, abmRescanned=True)
+
+			try:
+				abm_integration.startRescan(self.session, onRescanDone)
+			except Exception as err:
+				print(f"[SettingsHub] Warning: could not start the automatic AutoBouquetsMaker rescan.  ({err})")
+				self._notifyInstallResult(provider, entry, success, message)
 
 		try:
 			provider.install(entry, progress, installDone)
@@ -161,11 +194,13 @@ class AutoCheckService:
 			print(f"[SettingsHub] Installazione automatica fallita per '{provider.id}': {e}")
 			self._notifyInstallResult(provider, entry, False, str(e))
 
-	def _notifyInstallResult(self, provider, entry, success, message):
+	def _notifyInstallResult(self, provider, entry, success, message, abmRescanned=False):
 		from Screens.MessageBox import MessageBox
 		if not self.session:
 			return
 		if success:
+			if abmRescanned:
+				message = (message + "\n" if message else "") + _("The ABM bouquet(s) were rebuilt by AutoBouquetsMaker.")
 			text = _("New setting installed automatically for %s:\n%s") % (provider.name, message or entry.name)
 			msgType = MessageBox.TYPE_INFO
 		else:
